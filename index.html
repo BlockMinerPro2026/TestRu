@@ -1,504 +1,1231 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  />
-  <title>Air Drawing</title>
+<meta charset="UTF-8">
 
-  <!-- MediaPipe -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<meta
+  name="viewport"
+  content="width=device-width,
+           initial-scale=1.0,
+           maximum-scale=1.0,
+           user-scalable=no,
+           viewport-fit=cover"
+>
 
-  <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+<title>Air Draw</title>
 
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-      font-family: Arial, sans-serif;
-    }
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
-    #container {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      background: #000;
-    }
+<style>
 
-    #video {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
-    }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
 
-    #canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      transform: scaleX(-1);
-    }
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+}
 
-    #ui {
-      position: absolute;
-      z-index: 10;
-      top: env(safe-area-inset-top, 15px);
-      left: 0;
-      right: 0;
-      padding: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      pointer-events: none;
-    }
+#app {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
 
-    .panel {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 18px;
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      pointer-events: auto;
-    }
+/* CAMERA */
 
-    button {
-      border: 0;
-      color: white;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 14px;
-      min-width: 42px;
-      height: 42px;
-      font-size: 20px;
-      cursor: pointer;
-    }
+#video {
+  position: absolute;
+  inset: 0;
 
-    button.active {
-      box-shadow: 0 0 0 2px white inset;
-    }
+  width: 100%;
+  height: 100%;
 
-    .color {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.7);
-    }
+  object-fit: cover;
 
-    #red {
-      background: #ff304f;
-    }
+  transform: scaleX(-1);
 
-    #blue {
-      background: #3080ff;
-    }
+  background: #000;
+}
 
-    #green {
-      background: #00ff88;
-    }
+/* DRAWING */
 
-    #yellow {
-      background: #ffe600;
-    }
+#drawCanvas {
+  position: absolute;
+  inset: 0;
 
-    #white {
-      background: white;
-    }
+  width: 100%;
+  height: 100%;
 
-    #status {
-      position: absolute;
-      z-index: 10;
-      bottom: calc(env(safe-area-inset-bottom, 15px) + 15px);
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 10px 16px;
-      color: white;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      white-space: nowrap;
-      font-size: 14px;
-    }
+  pointer-events: none;
 
-    #startScreen {
-      position: absolute;
-      z-index: 20;
-      inset: 0;
-      background: #050505;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 30px;
-    }
+  transform: scaleX(-1);
+}
 
-    #startScreen h1 {
-      font-size: 32px;
-      margin: 0 0 12px;
-    }
+/* FINGER CURSOR */
 
-    #startScreen p {
-      opacity: 0.7;
-      max-width: 350px;
-      line-height: 1.5;
-    }
+#cursor {
+  position: absolute;
 
-    #startButton {
-      margin-top: 20px;
-      padding: 14px 24px;
-      height: auto;
-      border-radius: 30px;
-      background: white;
-      color: black;
-      font-size: 17px;
-      font-weight: bold;
-    }
+  width: 18px;
+  height: 18px;
 
-    #error {
-      color: #ff5c75;
-      margin-top: 15px;
-      max-width: 350px;
-    }
-  </style>
+  margin-left: -9px;
+  margin-top: -9px;
+
+  border-radius: 50%;
+
+  border: 2px solid white;
+
+  box-shadow:
+    0 0 8px white,
+    0 0 20px currentColor;
+
+  pointer-events: none;
+
+  display: none;
+
+  z-index: 20;
+}
+
+/* UI */
+
+#top {
+  position: absolute;
+
+  top: env(safe-area-inset-top, 12px);
+  left: 12px;
+  right: 12px;
+
+  display: flex;
+  justify-content: space-between;
+
+  z-index: 30;
+}
+
+.panel {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+
+  padding: 7px;
+
+  border-radius: 18px;
+
+  background: rgba(0,0,0,.45);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+button {
+  width: 42px;
+  height: 42px;
+
+  border: none;
+  border-radius: 14px;
+
+  color: white;
+
+  background: rgba(255,255,255,.15);
+
+  font-size: 19px;
+}
+
+button:active {
+  transform: scale(.92);
+}
+
+.color {
+  width: 30px;
+  height: 30px;
+
+  min-width: 30px;
+
+  border-radius: 50%;
+
+  border: 2px solid rgba(255,255,255,.5);
+}
+
+.color.active {
+  border: 3px solid white;
+
+  box-shadow:
+    0 0 8px white,
+    0 0 15px white;
+}
+
+#white {
+  background: white;
+}
+
+#red {
+  background: #ff1744;
+}
+
+#blue {
+  background: #2979ff;
+}
+
+#green {
+  background: #00ff88;
+}
+
+#yellow {
+  background: #ffe600;
+}
+
+/* STATUS */
+
+#status {
+  position: absolute;
+
+  z-index: 30;
+
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 10px) + 15px);
+
+  transform: translateX(-50%);
+
+  padding: 9px 16px;
+
+  border-radius: 20px;
+
+  color: white;
+
+  background: rgba(0,0,0,.45);
+
+  backdrop-filter: blur(10px);
+
+  font-size: 14px;
+
+  white-space: nowrap;
+}
+
+/* START */
+
+#start {
+  position: absolute;
+  inset: 0;
+
+  z-index: 100;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+  align-items: center;
+
+  padding: 30px;
+
+  color: white;
+
+  background: #050505;
+
+  text-align: center;
+}
+
+#start h1 {
+  font-size: 34px;
+  margin: 0 0 10px;
+}
+
+#start p {
+  max-width: 350px;
+
+  line-height: 1.5;
+
+  opacity: .7;
+}
+
+#startButton {
+  width: auto;
+  height: auto;
+
+  margin-top: 20px;
+
+  padding: 14px 25px;
+
+  border-radius: 30px;
+
+  background: white;
+
+  color: black;
+
+  font-size: 17px;
+  font-weight: bold;
+}
+
+#error {
+  margin-top: 15px;
+
+  max-width: 350px;
+
+  color: #ff5570;
+}
+
+</style>
 </head>
 
 <body>
 
-<div id="container">
+<div id="app">
 
-  <video id="video" autoplay muted playsinline></video>
-  <canvas id="canvas"></canvas>
+  <video
+    id="video"
+    autoplay
+    muted
+    playsinline
+  ></video>
 
-  <div id="ui">
+  <canvas id="drawCanvas"></canvas>
+
+  <div id="cursor"></div>
+
+  <div id="top">
 
     <div class="panel">
-      <button class="color active" id="white" data-color="#ffffff"></button>
-      <button class="color" id="red" data-color="#ff304f"></button>
-      <button class="color" id="blue" data-color="#3080ff"></button>
-      <button class="color" id="green" data-color="#00ff88"></button>
-      <button class="color" id="yellow" data-color="#ffe600"></button>
+
+      <button
+        class="color active"
+        id="white"
+        data-color="#ffffff">
+      </button>
+
+      <button
+        class="color"
+        id="red"
+        data-color="#ff1744">
+      </button>
+
+      <button
+        class="color"
+        id="blue"
+        data-color="#2979ff">
+      </button>
+
+      <button
+        class="color"
+        id="green"
+        data-color="#00ff88">
+      </button>
+
+      <button
+        class="color"
+        id="yellow"
+        data-color="#ffe600">
+      </button>
+
     </div>
 
     <div class="panel">
-      <button id="clear">🗑️</button>
+
+      <button id="clear">🗑</button>
+
       <button id="save">📸</button>
+
     </div>
 
   </div>
 
-  <div id="status">Покажи указательный палец ☝️</div>
+  <div id="status">
+    Покажи руку ☝️
+  </div>
 
-  <div id="startScreen">
-    <h1>✨ Air Drawing</h1>
+  <div id="start">
+
+    <h1>✨ Air Draw</h1>
+
     <p>
-      Разреши доступ к камере и рисуй указательным пальцем прямо в воздухе.
+      Подними указательный палец и рисуй им прямо в воздухе.
     </p>
 
-    <button id="startButton">Запустить камеру</button>
+    <button id="startButton">
+      Запустить камеру
+    </button>
 
     <div id="error"></div>
+
   </div>
 
 </div>
 
 <script>
-  const video = document.getElementById("video");
-  const canvas = document.getElementById("canvas");
-  const ctx = canvas.getContext("2d");
 
-  const startScreen = document.getElementById("startScreen");
-  const startButton = document.getElementById("startButton");
-  const status = document.getElementById("status");
-  const errorBox = document.getElementById("error");
+/* =========================================================
+   ELEMENTS
+========================================================= */
 
-  let currentColor = "#ffffff";
-  let drawing = false;
-  let lastX = null;
-  let lastY = null;
+const video = document.getElementById("video");
 
-  // Настройки кисти
-  const brushSize = 7;
-  const glowSize = 25;
+const canvas = document.getElementById("drawCanvas");
 
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+const ctx = canvas.getContext("2d", {
+  alpha: true,
+  desynchronized: true
+});
 
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-  }
+const cursor = document.getElementById("cursor");
 
-  window.addEventListener("resize", resizeCanvas);
-  resizeCanvas();
+const status = document.getElementById("status");
 
-  // -----------------------------
-  // Цвет кисти
-  // -----------------------------
+const startScreen = document.getElementById("start");
 
-  document.querySelectorAll(".color").forEach(button => {
-    button.addEventListener("click", () => {
+const errorBox = document.getElementById("error");
 
-      document
-        .querySelectorAll(".color")
-        .forEach(b => b.classList.remove("active"));
 
-      button.classList.add("active");
+/* =========================================================
+   SETTINGS
+========================================================= */
 
-      currentColor = button.dataset.color;
-    });
+let currentColor = "#ffffff";
+
+let drawing = false;
+
+let lastX = null;
+let lastY = null;
+
+let canvasWidth = 0;
+let canvasHeight = 0;
+
+
+/*
+  Чем меньше число — тем быстрее линия реагирует.
+
+  Мы практически не сглаживаем координаты,
+  поэтому палец ощущается максимально прямым.
+*/
+
+const SMOOTHING = 0.15;
+
+
+/* =========================================================
+   CANVAS
+========================================================= */
+
+function resizeCanvas() {
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  canvasWidth = window.innerWidth;
+  canvasHeight = window.innerHeight;
+
+  canvas.width = canvasWidth * dpr;
+  canvas.height = canvasHeight * dpr;
+
+  canvas.style.width = canvasWidth + "px";
+  canvas.style.height = canvasHeight + "px";
+
+  ctx.setTransform(
+    dpr,
+    0,
+    0,
+    dpr,
+    0,
+    0
+  );
+
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+}
+
+resizeCanvas();
+
+window.addEventListener("resize", resizeCanvas);
+
+
+/* =========================================================
+   COLORS
+========================================================= */
+
+document.querySelectorAll(".color").forEach(button => {
+
+  button.addEventListener("click", () => {
+
+    document
+      .querySelectorAll(".color")
+      .forEach(b => b.classList.remove("active"));
+
+    button.classList.add("active");
+
+    currentColor = button.dataset.color;
+
+    cursor.style.color = currentColor;
   });
 
-  // -----------------------------
-  // Очистить рисунок
-  // -----------------------------
+});
 
-  document.getElementById("clear").addEventListener("click", () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+/* =========================================================
+   CLEAR
+========================================================= */
+
+document.getElementById("clear").onclick = () => {
+
+  ctx.clearRect(
+    0,
+    0,
+    canvasWidth,
+    canvasHeight
+  );
+
+  drawing = false;
+
+  lastX = null;
+  lastY = null;
+};
+
+
+/* =========================================================
+   DISTANCE
+========================================================= */
+
+function distance(a, b) {
+
+  const x = a.x - b.x;
+  const y = a.y - b.y;
+  const z = (a.z || 0) - (b.z || 0);
+
+  return Math.sqrt(
+    x * x +
+    y * y +
+    z * z
+  );
+}
+
+
+/* =========================================================
+   ANGLE
+========================================================= */
+
+function angle(a, b, c) {
+
+  const ab = {
+    x: a.x - b.x,
+    y: a.y - b.y
+  };
+
+  const cb = {
+    x: c.x - b.x,
+    y: c.y - b.y
+  };
+
+  const dot =
+    ab.x * cb.x +
+    ab.y * cb.y;
+
+  const magAB =
+    Math.sqrt(
+      ab.x * ab.x +
+      ab.y * ab.y
+    );
+
+  const magCB =
+    Math.sqrt(
+      cb.x * cb.x +
+      cb.y * cb.y
+    );
+
+  if (!magAB || !magCB) {
+    return 180;
+  }
+
+  const cosine =
+    dot / (magAB * magCB);
+
+  return Math.acos(
+    Math.max(-1, Math.min(1, cosine))
+  ) * 180 / Math.PI;
+}
+
+
+/* =========================================================
+   FINGER DETECTION
+=========================================================
+
+MediaPipe landmarks:
+
+THUMB:
+4 tip
+3 IP
+2 MCP
+
+INDEX:
+8 tip
+7 DIP
+6 PIP
+5 MCP
+
+MIDDLE:
+12 tip
+11 DIP
+10 PIP
+9 MCP
+
+RING:
+16 tip
+15 DIP
+14 PIP
+13 MCP
+
+PINKY:
+20 tip
+19 DIP
+18 PIP
+17 MCP
+*/
+
+
+function isFingerExtended(lm, tip, pip, mcp) {
+
+  const a = lm[tip];
+  const b = lm[pip];
+  const c = lm[mcp];
+
+  /*
+    Проверяем сразу несколько признаков.
+
+    1. Палец должен быть длиннее
+       от MCP до TIP.
+
+    2. Сустав должен быть почти прямым.
+  */
+
+  const fingerLength =
+    distance(a, c);
+
+  const palmSize =
+    distance(lm[0], lm[9]);
+
+  const straight =
+    angle(
+      lm[tip],
+      lm[pip],
+      lm[mcp]
+    );
+
+  return (
+    fingerLength > palmSize * 0.65 &&
+    straight > 145
+  );
+}
+
+
+function isThumbExtended(lm) {
+
+  const tip = lm[4];
+  const ip = lm[3];
+  const mcp = lm[2];
+
+  const palmSize =
+    distance(lm[0], lm[9]);
+
+  const length =
+    distance(tip, mcp);
+
+  const straight =
+    angle(tip, ip, mcp);
+
+  return (
+    length > palmSize * 0.45 &&
+    straight > 135
+  );
+}
+
+
+function countFingers(lm) {
+
+  let count = 0;
+
+  if (isThumbExtended(lm)) {
+    count++;
+  }
+
+  if (isFingerExtended(lm, 8, 7, 5)) {
+    count++;
+  }
+
+  if (isFingerExtended(lm, 12, 11, 9)) {
+    count++;
+  }
+
+  if (isFingerExtended(lm, 16, 15, 13)) {
+    count++;
+  }
+
+  if (isFingerExtended(lm, 20, 19, 17)) {
+    count++;
+  }
+
+  return count;
+}
+
+
+/* =========================================================
+   CAMERA → SCREEN COORDINATES
+=========================================================
+
+Это важнейшая часть.
+
+При object-fit: cover изображение камеры
+может обрезаться сверху/снизу или по бокам.
+
+Поэтому нельзя просто делать:
+
+x = landmark.x * width
+
+Мы сначала вычисляем реальную область,
+в которой находится видео.
+*/
+
+
+function landmarkToScreen(landmark) {
+
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+
+  const sw = canvasWidth;
+  const sh = canvasHeight;
+
+  if (!vw || !vh) {
+    return {
+      x: sw / 2,
+      y: sh / 2
+    };
+  }
+
+  /*
+    object-fit: cover
+  */
+
+  const scale =
+    Math.max(
+      sw / vw,
+      sh / vh
+    );
+
+  const displayedWidth =
+    vw * scale;
+
+  const displayedHeight =
+    vh * scale;
+
+  const offsetX =
+    (sw - displayedWidth) / 2;
+
+  const offsetY =
+    (sh - displayedHeight) / 2;
+
+  /*
+    MediaPipe X идёт слева направо
+    относительно исходного видео.
+
+    Видео у нас зеркальное,
+    поэтому переворачиваем X.
+  */
+
+  const x =
+    offsetX +
+    (1 - landmark.x) *
+    displayedWidth;
+
+  const y =
+    offsetY +
+    landmark.y *
+    displayedHeight;
+
+  return {
+    x,
+    y
+  };
+}
+
+
+/* =========================================================
+   DRAW
+========================================================= */
+
+function drawLine(x1, y1, x2, y2) {
+
+  /*
+    Основная линия
+  */
+
+  ctx.save();
+
+  ctx.strokeStyle = currentColor;
+
+  ctx.lineWidth = 6;
+
+  ctx.shadowColor = currentColor;
+
+  ctx.shadowBlur = 18;
+
+  ctx.beginPath();
+
+  ctx.moveTo(x1, y1);
+
+  ctx.lineTo(x2, y2);
+
+  ctx.stroke();
+
+  ctx.restore();
+
+
+  /*
+    Яркое ядро
+  */
+
+  ctx.save();
+
+  ctx.strokeStyle = currentColor;
+
+  ctx.lineWidth = 2.5;
+
+  ctx.shadowBlur = 0;
+
+  ctx.beginPath();
+
+  ctx.moveTo(x1, y1);
+
+  ctx.lineTo(x2, y2);
+
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+
+/* =========================================================
+   MEDIAPIPE
+========================================================= */
+
+const hands = new Hands({
+
+  locateFile: file => {
+
+    return (
+      "https://cdn.jsdelivr.net/npm/" +
+      "@mediapipe/hands/" +
+      file
+    );
+
+  }
+
+});
+
+
+hands.setOptions({
+
+  /*
+    0 быстрее.
+
+    Для телефона это обычно лучше,
+    чем максимальное качество модели.
+  */
+
+  modelComplexity: 0,
+
+  maxNumHands: 1,
+
+  /*
+    Немного снижены пороги,
+    чтобы палец захватывался быстрее.
+  */
+
+  minDetectionConfidence: 0.55,
+
+  minTrackingConfidence: 0.55
+
+});
+
+
+/* =========================================================
+   RESULTS
+========================================================= */
+
+hands.onResults(results => {
+
+  if (
+    !results.multiHandLandmarks ||
+    results.multiHandLandmarks.length === 0
+  ) {
+
+    status.textContent =
+      "Покажи руку ☝️";
+
+    cursor.style.display = "none";
+
+    drawing = false;
 
     lastX = null;
     lastY = null;
-    drawing = false;
-  });
 
-  // -----------------------------
-  // Сохранить изображение
-  // -----------------------------
-
-  document.getElementById("save").addEventListener("click", () => {
-
-    const result = document.createElement("canvas");
-
-    result.width = video.videoWidth || window.innerWidth;
-    result.height = video.videoHeight || window.innerHeight;
-
-    const rctx = result.getContext("2d");
-
-    // Камера
-    rctx.save();
-    rctx.translate(result.width, 0);
-    rctx.scale(-1, 1);
-
-    rctx.drawImage(
-      video,
-      0,
-      0,
-      result.width,
-      result.height
-    );
-
-    rctx.restore();
-
-    // Рисунок
-    rctx.drawImage(
-      canvas,
-      0,
-      0,
-      result.width,
-      result.height
-    );
-
-    const link = document.createElement("a");
-    link.download = "air-drawing.png";
-    link.href = result.toDataURL("image/png");
-
-    link.click();
-  });
-
-  // -----------------------------
-  // MediaPipe Hands
-  // -----------------------------
-
-  const hands = new Hands({
-    locateFile: file => {
-      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-    }
-  });
-
-  hands.setOptions({
-    maxNumHands: 1,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.6
-  });
-
-  hands.onResults(results => {
-
-    if (!results.multiHandLandmarks ||
-        results.multiHandLandmarks.length === 0) {
-
-      status.textContent = "Покажи руку ☝️";
-
-      drawing = false;
-      lastX = null;
-      lastY = null;
-
-      return;
-    }
-
-    const landmarks = results.multiHandLandmarks[0];
-
-    /*
-      MediaPipe:
-      8 = кончик указательного пальца
-      6 = средняя фаланга указательного пальца
-      5 = основание указательного пальца
-    */
-
-    const tip = landmarks[8];
-    const pip = landmarks[6];
-    const mcp = landmarks[5];
-
-    /*
-      Проверяем, поднят ли указательный палец.
-      Координата Y меньше = палец выше.
-    */
-
-    const indexIsUp =
-      tip.y < pip.y &&
-      pip.y < mcp.y;
-
-    if (!indexIsUp) {
-
-      status.textContent = "Подними указательный палец ☝️";
-
-      drawing = false;
-      lastX = null;
-      lastY = null;
-
-      return;
-    }
-
-    status.textContent = "Рисую ✨";
-
-    /*
-      Видео зеркальное.
-      Поэтому X инвертируем.
-    */
-
-    const x = (1 - tip.x) * canvas.width;
-    const y = tip.y * canvas.height;
-
-    if (!drawing) {
-      lastX = x;
-      lastY = y;
-      drawing = true;
-      return;
-    }
-
-    drawLine(lastX, lastY, x, y);
-
-    lastX = x;
-    lastY = y;
-  });
-
-  // -----------------------------
-  // Рисование
-  // -----------------------------
-
-  function drawLine(x1, y1, x2, y2) {
-
-    // Свечение
-    ctx.save();
-
-    ctx.shadowBlur = glowSize;
-    ctx.shadowColor = currentColor;
-
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = brushSize;
-
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-
-    ctx.restore();
-
-    // Яркое ядро линии
-    ctx.save();
-
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = brushSize / 2;
-
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-
-    ctx.restore();
+    return;
   }
 
-  // -----------------------------
-  // Запуск камеры
-  // -----------------------------
 
-  async function startCamera() {
+  const lm =
+    results.multiHandLandmarks[0];
+
+
+  /*
+    Сколько пальцев поднято
+  */
+
+  const fingers =
+    countFingers(lm);
+
+
+  /*
+    Указательный палец
+  */
+
+  const indexUp =
+    isFingerExtended(
+      lm,
+      8,
+      7,
+      5
+    );
+
+
+  /*
+    Координата кончика указательного пальца
+  */
+
+  const point =
+    landmarkToScreen(lm[8]);
+
+
+  /* CURSOR */
+
+  cursor.style.display = "block";
+
+  cursor.style.left =
+    point.x + "px";
+
+  cursor.style.top =
+    point.y + "px";
+
+  cursor.style.color =
+    currentColor;
+
+
+  /*
+    Показываем количество пальцев
+  */
+
+  if (!indexUp) {
+
+    status.textContent =
+      `Пальцев: ${fingers}`;
+
+    drawing = false;
+
+    lastX = null;
+    lastY = null;
+
+    return;
+  }
+
+
+  status.textContent =
+    `Рисую • пальцев: ${fingers}`;
+
+
+  /*
+    Первый кадр.
+
+    НЕ рисуем линию от старой позиции,
+    иначе появляется длинная полоска.
+  */
+
+  if (!drawing) {
+
+    drawing = true;
+
+    lastX = point.x;
+    lastY = point.y;
+
+    return;
+  }
+
+
+  /*
+    Минимальное сглаживание.
+
+    Оно нужно только для удаления
+    микродрожания MediaPipe.
+
+    При этом задержка практически
+    незаметна.
+  */
+
+  const x =
+    lastX +
+    (point.x - lastX) *
+    (1 - SMOOTHING);
+
+  const y =
+    lastY +
+    (point.y - lastY) *
+    (1 - SMOOTHING);
+
+
+  /*
+    Рисуем непосредственно между
+    предыдущей и текущей точкой.
+  */
+
+  drawLine(
+    lastX,
+    lastY,
+    x,
+    y
+  );
+
+
+  lastX = x;
+  lastY = y;
+
+});
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+let stream = null;
+
+
+async function startCamera() {
+
+  try {
 
     errorBox.textContent = "";
 
-    try {
+    stream =
+      await navigator.mediaDevices.getUserMedia({
 
-      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: {
-            ideal: "user"
-          },
+
+          /*
+            Фронтальная камера.
+
+            Она зеркалится CSS-ом.
+          */
+
+          facingMode: "user",
+
           width: {
             ideal: 1280
           },
+
           height: {
             ideal: 720
+          },
+
+          frameRate: {
+            ideal: 60,
+            max: 60
           }
+
         },
+
         audio: false
+
       });
 
-      video.srcObject = stream;
 
-      await video.play();
+    video.srcObject = stream;
 
-      startScreen.style.display = "none";
 
-      const camera = new Camera(video, {
-        onFrame: async () => {
+    /*
+      Важно дождаться metadata,
+      чтобы videoWidth/videoHeight
+      были правильными.
+    */
+
+    await new Promise(resolve => {
+
+      if (video.readyState >= 1) {
+
+        resolve();
+
+      } else {
+
+        video.onloadedmetadata = resolve;
+
+      }
+
+    });
+
+
+    await video.play();
+
+
+    startScreen.style.display =
+      "none";
+
+
+    /*
+      Отправляем кадры непосредственно
+      в MediaPipe.
+
+      requestAnimationFrame позволяет
+      работать максимально плавно.
+    */
+
+    let processing = false;
+
+
+    async function processFrame() {
+
+      if (
+        !processing &&
+        video.readyState >= 2
+      ) {
+
+        processing = true;
+
+        try {
+
           await hands.send({
             image: video
           });
-        },
-        width: 1280,
-        height: 720
-      });
 
-      camera.start();
+        } catch (e) {
 
-    } catch (error) {
+          console.error(e);
 
-      console.error(error);
+        }
 
-      errorBox.textContent =
-        "Не удалось получить доступ к камере. Проверь разрешение камеры и открой страницу через HTTPS.";
+        processing = false;
+      }
 
+
+      requestAnimationFrame(
+        processFrame
+      );
     }
+
+
+    requestAnimationFrame(
+      processFrame
+    );
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    errorBox.textContent =
+      "Камера недоступна. " +
+      "Разреши доступ к камере и открой страницу через HTTPS.";
+
   }
 
-  startButton.addEventListener("click", startCamera);
+}
+
+
+/* =========================================================
+   SAVE IMAGE
+========================================================= */
+
+document.getElementById("save").onclick =
+async () => {
+
+  if (!video.videoWidth) {
+    return;
+  }
+
+
+  const result =
+    document.createElement("canvas");
+
+
+  result.width =
+    video.videoWidth;
+
+  result.height =
+    video.videoHeight;
+
+
+  const rctx =
+    result.getContext("2d");
+
+
+  /*
+    Зеркальная камера
+  */
+
+  rctx.save();
+
+  rctx.translate(
+    result.width,
+    0
+  );
+
+  rctx.scale(-1, 1);
+
+
+  rctx.drawImage(
+    video,
+    0,
+    0,
+    result.width,
+    result.height
+  );
+
+  rctx.restore();
+
+
+  /*
+    Canvas с рисунком
+  */
+
+  rctx.drawImage(
+    canvas,
+    0,
+    0,
+    result.width,
+    result.height
+  );
+
+
+  const link =
+    document.createElement("a");
+
+  link.download =
+    "air-drawing.png";
+
+  link.href =
+    result.toDataURL("image/png");
+
+  link.click();
+
+};
+
+
+/* =========================================================
+   START
+========================================================= */
+
+document.getElementById("startButton")
+  .addEventListener(
+    "click",
+    startCamera
+  );
 
 </script>
 
