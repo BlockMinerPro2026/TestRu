@@ -1,5 +1,569 @@
 <!DOCTYPE html>
+<html lang="ru"><!DOCTYPE html>
 <html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Godot → APK</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            font-family: Arial, sans-serif;
+            background:
+                radial-gradient(circle at top, #263b63 0%, #101522 45%, #080b12 100%);
+            color: white;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 620px;
+        }
+
+        .card {
+            background: rgba(20, 27, 42, 0.92);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 28px;
+            padding: 30px;
+            box-shadow: 0 25px 80px rgba(0,0,0,.45);
+        }
+
+        .logo {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #4f8cff, #7c4dff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 32px;
+        }
+
+        .description {
+            color: #aeb9cc;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .upload {
+            border: 2px dashed #52617b;
+            border-radius: 20px;
+            padding: 35px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: .2s;
+            display: block;
+        }
+
+        .upload:hover {
+            border-color: #669cff;
+            background: rgba(80,130,255,.07);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .upload-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        .upload-info {
+            color: #8996ad;
+            font-size: 14px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-name {
+            margin-top: 15px;
+            padding: 13px;
+            background: rgba(255,255,255,.05);
+            border-radius: 12px;
+            color: #cbd5e1;
+            display: none;
+            word-break: break-word;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 18px;
+            padding: 17px;
+            border: 0;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #4f8cff, #694cff);
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+
+        button:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .progress {
+            display: none;
+            margin-top: 22px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #293247;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4f8cff, #8c5cff);
+            transition: width .4s;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 12px;
+            color: #b9c4d8;
+            font-size: 14px;
+        }
+
+        .steps {
+            margin-top: 28px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #aeb9cc;
+            font-size: 14px;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #28344b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .footer {
+            margin-top: 22px;
+            text-align: center;
+            color: #69758a;
+            font-size: 12px;
+        }
+
+        .success {
+            color: #67e8a5;
+        }
+
+        .error {
+            color: #ff7d7d;
+        }
+
+        @media (max-width: 500px) {
+            body {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 22px;
+                border-radius: 22px;
+            }
+
+            h1 {
+                font-size: 27px;
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <div class="logo">
+            🎮
+        </div>
+
+        <h1>Godot → APK</h1>
+
+        <div class="description">
+            Загрузи ZIP-файл своего проекта Godot,
+            и сервер автоматически соберёт из него
+            приложение для Android.
+        </div>
+
+        <label class="upload" for="projectFile">
+
+            <div class="upload-icon">
+                📦
+            </div>
+
+            <div class="upload-title">
+                Выбрать ZIP проекта
+            </div>
+
+            <div class="upload-info">
+                Нажми здесь и выбери файл .zip
+            </div>
+
+            <input
+                id="projectFile"
+                type="file"
+                accept=".zip"
+            >
+
+        </label>
+
+        <div
+            id="fileName"
+            class="file-name"
+        ></div>
+
+        <button
+            id="buildButton"
+            disabled
+        >
+            🚀 Собрать APK
+        </button>
+
+        <div
+            id="progress"
+            class="progress"
+        >
+            <div class="progress-bar">
+                <div
+                    id="progressFill"
+                    class="progress-fill"
+                ></div>
+            </div>
+
+            <div
+                id="status"
+                class="status"
+            >
+                Подготовка...
+            </div>
+        </div>
+
+        <div class="steps">
+
+            <div class="step">
+                <div class="step-number">1</div>
+                Загрузить ZIP Godot-проекта
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                Сервер распакует проект
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                Godot соберёт Android APK
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                APK автоматически скачается
+            </div>
+
+        </div>
+
+        <div class="footer">
+            Godot 4 • Android APK Builder
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const fileInput =
+    document.getElementById("projectFile");
+
+const fileName =
+    document.getElementById("fileName");
+
+const buildButton =
+    document.getElementById("buildButton");
+
+const progress =
+    document.getElementById("progress");
+
+const progressFill =
+    document.getElementById("progressFill");
+
+const status =
+    document.getElementById("status");
+
+
+let selectedFile = null;
+
+
+/*
+    Выбор ZIP
+*/
+
+fileInput.addEventListener(
+    "change",
+    function () {
+
+        const file = this.files[0];
+
+        if (!file) {
+            selectedFile = null;
+            buildButton.disabled = true;
+            fileName.style.display = "none";
+            return;
+        }
+
+        if (!file.name.toLowerCase().endsWith(".zip")) {
+
+            alert("Можно загружать только ZIP-файлы.");
+
+            this.value = "";
+            selectedFile = null;
+            buildButton.disabled = true;
+
+            return;
+        }
+
+        selectedFile = file;
+
+        fileName.style.display = "block";
+
+        fileName.textContent =
+            "📦 " +
+            file.name +
+            " • " +
+            formatSize(file.size);
+
+        buildButton.disabled = false;
+    }
+);
+
+
+/*
+    Кнопка сборки
+*/
+
+buildButton.addEventListener(
+    "click",
+    async function () {
+
+        if (!selectedFile) {
+            return;
+        }
+
+        buildButton.disabled = true;
+
+        progress.style.display = "block";
+
+        progressFill.style.width = "10%";
+
+        status.textContent =
+            "Загружаем проект...";
+
+        status.className = "status";
+
+
+        const formData = new FormData();
+
+        formData.append(
+            "project",
+            selectedFile
+        );
+
+
+        try {
+
+            progressFill.style.width = "30%";
+
+            status.textContent =
+                "Распаковываем проект...";
+
+
+            const response =
+                await fetch(
+                    "/api/build",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+            progressFill.style.width = "60%";
+
+            status.textContent =
+                "Godot собирает APK...";
+
+
+            if (!response.ok) {
+
+                let errorMessage =
+                    "Неизвестная ошибка.";
+
+                try {
+
+                    const error =
+                        await response.json();
+
+                    errorMessage =
+                        error.error ||
+                        errorMessage;
+
+                } catch (_) {}
+
+                throw new Error(
+                    errorMessage
+                );
+            }
+
+
+            progressFill.style.width = "90%";
+
+            status.textContent =
+                "APK готовится к скачиванию...";
+
+
+            const blob =
+                await response.blob();
+
+
+            const url =
+                URL.createObjectURL(blob);
+
+
+            const link =
+                document.createElement("a");
+
+            link.href = url;
+
+            link.download =
+                "farm.apk";
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            link.remove();
+
+            URL.revokeObjectURL(url);
+
+
+            progressFill.style.width = "100%";
+
+            status.textContent =
+                "✅ APK готов! Загрузка началась.";
+
+            status.className =
+                "status success";
+
+
+        } catch (error) {
+
+            progressFill.style.width = "0%";
+
+            status.textContent =
+                "❌ " + error.message;
+
+            status.className =
+                "status error";
+
+        } finally {
+
+            buildButton.disabled = false;
+
+        }
+
+    }
+);
+
+
+/*
+    Размер файла
+*/
+
+function formatSize(bytes) {
+
+    if (bytes < 1024) {
+        return bytes + " B";
+    }
+
+    if (bytes < 1024 * 1024) {
+        return (
+            (bytes / 1024).toFixed(1) +
+            " KB"
+        );
+    }
+
+    return (
+        (bytes / 1024 / 1024).toFixed(1) +
+        " MB"
+    );
+}
+
+</script>
+
+</body>
+</html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
