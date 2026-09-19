@@ -1,2026 +1,1380 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-
 <meta charset="UTF-8">
-
-<meta
-  name="viewport"
-  content="width=device-width,
-  initial-scale=1,
-  maximum-scale=1,
-  user-scalable=no,
-  viewport-fit=cover"
->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <title>Air Draw</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-
 <style>
-
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-html,
-body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #000;
-  touch-action: none;
-}
-
-#app {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  background: #000;
-}
-
-/* =====================================================
-   CAMERA
-===================================================== */
-
-#video {
-  position: absolute;
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-
-  transform: scaleX(-1);
-
-  background: #000;
-
-  z-index: 1;
-}
-
-
-/* =====================================================
-   DRAW CANVAS
-===================================================== */
-
-#canvas {
-  position: absolute;
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
-  pointer-events: none;
-
-  transform: scaleX(-1);
-
-  z-index: 5;
-}
-
-
-/* =====================================================
-   FINGER POINTER
-===================================================== */
-
-#fingerPoint {
-
-  position: absolute;
-
-  width: 18px;
-  height: 18px;
-
-  margin-left: -9px;
-  margin-top: -9px;
-
-  border-radius: 50%;
-
-  border: 2px solid white;
-
-  pointer-events: none;
-
-  z-index: 20;
-
-  display: none;
-
-  box-shadow:
-    0 0 5px white,
-    0 0 18px currentColor;
-
-}
-
-
-/* =====================================================
-   TOP UI
-===================================================== */
-
-#topBar {
-
-  position: absolute;
-
-  top: env(safe-area-inset-top, 10px);
-
-  left: 10px;
-  right: 10px;
-
-  z-index: 50;
-
-  display: flex;
-
-  justify-content: space-between;
-
-  pointer-events: none;
-}
-
-
-.panel {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 7px;
-
-  padding: 7px;
-
-  border-radius: 18px;
-
-  background: rgba(0,0,0,.45);
-
-  backdrop-filter: blur(12px);
-
-  -webkit-backdrop-filter: blur(12px);
-
-  pointer-events: auto;
-}
-
-
-button {
-
-  width: 42px;
-  height: 42px;
-
-  border: 0;
-
-  border-radius: 14px;
-
-  background: rgba(255,255,255,.15);
-
-  color: white;
-
-  font-size: 18px;
-
-}
-
-
-button:active {
-
-  transform: scale(.9);
-
-}
-
-
-.color {
-
-  width: 30px;
-  height: 30px;
-
-  min-width: 30px;
-
-  border-radius: 50%;
-
-  border: 2px solid rgba(255,255,255,.5);
-
-}
-
-
-.color.active {
-
-  border: 3px solid white;
-
-  box-shadow:
-    0 0 7px white,
-    0 0 15px white;
-
-}
-
-
-#white {
-  background: white;
-}
-
-#red {
-  background: #ff1744;
-}
-
-#blue {
-  background: #2979ff;
-}
-
-#green {
-  background: #00ff88;
-}
-
-#yellow {
-  background: #ffe600;
-}
-
-
-/* =====================================================
-   STATUS
-===================================================== */
-
-#status {
-
-  position: absolute;
-
-  z-index: 50;
-
-  left: 50%;
-
-  bottom:
-    calc(
-      env(safe-area-inset-bottom, 10px)
-      + 14px
-    );
-
-  transform: translateX(-50%);
-
-  padding: 9px 16px;
-
-  border-radius: 20px;
-
-  color: white;
-
-  background: rgba(0,0,0,.5);
-
-  backdrop-filter: blur(10px);
-
-  font-size: 14px;
-
-  white-space: nowrap;
-}
-
-
-/* =====================================================
-   START SCREEN
-===================================================== */
-
-#startScreen {
-
-  position: absolute;
-
-  inset: 0;
-
-  z-index: 100;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 30px;
-
-  color: white;
-
-  background: #050505;
-
-  text-align: center;
-}
-
-
-#startScreen h1 {
-
-  margin: 0 0 10px;
-
-  font-size: 34px;
-
-}
-
-
-#startScreen p {
-
-  max-width: 360px;
-
-  line-height: 1.5;
-
-  opacity: .7;
-
-}
-
-
-#startButton {
-
-  width: auto;
-  height: auto;
-
-  margin-top: 20px;
-
-  padding: 15px 28px;
-
-  border-radius: 30px;
-
-  background: white;
-
-  color: black;
-
-  font-size: 17px;
-
-  font-weight: bold;
-
-}
-
-
-#startButton:disabled {
-
-  opacity: .5;
-
-}
-
-
-#error {
-
-  margin-top: 15px;
-
-  max-width: 360px;
-
-  color: #ff5570;
-
-  line-height: 1.4;
-
-}
-
-
-/* =====================================================
-   GESTURE HELP
-===================================================== */
-
-#help {
-
-  position: absolute;
-
-  z-index: 40;
-
-  left: 50%;
-
-  top: 50%;
-
-  transform: translate(-50%, -50%);
-
-  color: white;
-
-  background: rgba(0,0,0,.45);
-
-  padding: 15px 20px;
-
-  border-radius: 20px;
-
-  text-align: center;
-
-  pointer-events: none;
-
-  opacity: 0;
-
-  transition: opacity .2s;
-
-}
-
-
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        font-family: Arial, sans-serif;
+    }
+
+    #app {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        overflow: hidden;
+    }
+
+    #video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+    }
+
+    #canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        transform: scaleX(-1);
+    }
+
+    #fingerPoint {
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        margin-left: -11px;
+        margin-top: -11px;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        background: #00ffff;
+        box-shadow:
+            0 0 8px #00ffff,
+            0 0 20px #00ffff,
+            0 0 35px #00ffff;
+        pointer-events: none;
+        display: none;
+        z-index: 20;
+    }
+
+    #ui {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 30;
+        padding: 15px;
+        pointer-events: none;
+    }
+
+    #status {
+        display: inline-block;
+        padding: 10px 15px;
+        border-radius: 14px;
+        background: rgba(0,0,0,.65);
+        color: white;
+        font-size: 15px;
+        backdrop-filter: blur(10px);
+    }
+
+    #buttons {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        z-index: 40;
+    }
+
+    button {
+        border: none;
+        border-radius: 14px;
+        padding: 13px 18px;
+        font-size: 15px;
+        font-weight: bold;
+        color: white;
+        background: rgba(0,0,0,.75);
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+    }
+
+    button:active {
+        transform: scale(.96);
+    }
+
+    #startScreen {
+        position: absolute;
+        inset: 0;
+        z-index: 100;
+        background:
+            radial-gradient(circle at center, #151515 0%, #000 70%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: white;
+        padding: 25px;
+    }
+
+    .panel {
+        max-width: 420px;
+    }
+
+    h1 {
+        font-size: 36px;
+        margin-bottom: 12px;
+    }
+
+    .subtitle {
+        opacity: .75;
+        margin-bottom: 25px;
+        line-height: 1.5;
+    }
+
+    #startButton {
+        background: #00d9ff;
+        color: #000;
+        font-size: 18px;
+        padding: 16px 28px;
+        border-radius: 18px;
+        margin-bottom: 25px;
+    }
+
+    .gestures {
+        line-height: 2;
+        opacity: .9;
+        font-size: 16px;
+    }
+
+    #error {
+        color: #ff7070;
+        margin-top: 15px;
+        line-height: 1.4;
+        display: none;
+    }
+
+    #debug {
+        position: absolute;
+        right: 15px;
+        top: 15px;
+        z-index: 35;
+        padding: 8px 12px;
+        border-radius: 10px;
+        background: rgba(0,0,0,.55);
+        color: #fff;
+        font-size: 13px;
+        display: none;
+    }
 </style>
-
 </head>
 
 <body>
 
-
 <div id="app">
 
+    <video id="video" autoplay muted playsinline></video>
 
-  <!-- CAMERA -->
+    <canvas id="canvas"></canvas>
 
-  <video
-    id="video"
-    autoplay
-    muted
-    playsinline
-  ></video>
+    <div id="fingerPoint"></div>
 
-
-  <!-- DRAWING -->
-
-  <canvas id="canvas"></canvas>
-
-
-  <!-- POINTER -->
-
-  <div id="fingerPoint"></div>
-
-
-  <!-- TOP -->
-
-  <div id="topBar">
-
-
-    <div class="panel">
-
-      <button
-        class="color active"
-        data-color="#ffffff"
-        id="white">
-      </button>
-
-      <button
-        class="color"
-        data-color="#ff1744"
-        id="red">
-      </button>
-
-      <button
-        class="color"
-        data-color="#2979ff"
-        id="blue">
-      </button>
-
-      <button
-        class="color"
-        data-color="#00ff88"
-        id="green">
-      </button>
-
-      <button
-        class="color"
-        data-color="#ffe600"
-        id="yellow">
-      </button>
-
+    <div id="ui">
+        <div id="status">Камера не запущена</div>
     </div>
 
+    <div id="debug"></div>
 
-    <div class="panel">
-
-      <button id="clearButton">
-        🗑
-      </button>
-
-      <button id="saveButton">
-        📸
-      </button>
-
+    <div id="buttons">
+        <button id="clearButton">Очистить</button>
+        <button id="saveButton">Сохранить</button>
     </div>
 
+    <div id="startScreen">
+        <div class="panel">
 
-  </div>
+            <h1>Air Draw</h1>
 
+            <div class="subtitle">
+                Рисуй в воздухе указательным пальцем
+            </div>
 
-  <!-- STATUS -->
+            <button id="startButton">
+                📷 Запустить камеру
+            </button>
 
-  <div id="status">
-    Нажми «Запустить камеру»
-  </div>
+            <div class="gestures">
+                ☝️ 1 палец — рисовать<br>
+                ✌️ 2 пальца — ластик<br>
+                🤟 3 пальца — стереть всё<br>
+                ✊ Кулак — ничего
+            </div>
 
+            <div id="error"></div>
 
-  <!-- HELP -->
-
-  <div id="help">
-    ☝️ Рисовать<br>
-    ✌️ Ластик<br>
-    🤟 Стереть всё
-  </div>
-
-
-  <!-- START -->
-
-  <div id="startScreen">
-
-    <h1>✨ Air Draw</h1>
-
-    <p>
-      Покажи руку камере.
-      <br><br>
-      ☝️ 1 палец — рисовать<br>
-      ✌️ 2 пальца — ластик<br>
-      🤟 3 пальца — стереть всё
-    </p>
-
-
-    <button id="startButton">
-      Запустить камеру
-    </button>
-
-
-    <div id="error"></div>
-
-  </div>
-
+        </div>
+    </div>
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
 <script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-/* =====================================================
-   ELEMENTS
-===================================================== */
-
-const video =
-  document.getElementById("video");
-
-const canvas =
-  document.getElementById("canvas");
-
-const ctx =
-  canvas.getContext("2d", {
-    alpha: true
-  });
-
-const fingerPoint =
-  document.getElementById("fingerPoint");
-
-const status =
-  document.getElementById("status");
-
-const startScreen =
-  document.getElementById("startScreen");
-
-const startButton =
-  document.getElementById("startButton");
-
-const errorBox =
-  document.getElementById("error");
-
-const help =
-  document.getElementById("help");
-
-
-/* =====================================================
-   STATE
-===================================================== */
-
-let currentColor = "#ffffff";
-
-let drawing = false;
-
-let erasing = false;
-
-let lastX = null;
-
-let lastY = null;
-
-let processing = false;
+const fingerPoint = document.getElementById("fingerPoint");
+const statusEl = document.getElementById("status");
+const startScreen = document.getElementById("startScreen");
+const startButton = document.getElementById("startButton");
+const clearButton = document.getElementById("clearButton");
+const saveButton = document.getElementById("saveButton");
+const errorEl = document.getElementById("error");
+const debugEl = document.getElementById("debug");
 
 let cameraStarted = false;
+let processing = false;
+let lastPoint = null;
+
+let currentGesture = "none";
+let gestureCandidate = "none";
+let gestureFrames = 0;
+
+let clearLock = false;
+let lastFrameTime = 0;
 
 
-/*
-  Защита от многократного
-  срабатывания "3 пальца".
-*/
-
-let clearCooldown = false;
-
-
-/* =====================================================
-   CANVAS
-===================================================== */
+// ---------------------------------------------------------
+// CANVAS
+// ---------------------------------------------------------
 
 function resizeCanvas() {
+    canvas.width = window.innerWidth * devicePixelRatio;
+    canvas.height = window.innerHeight * devicePixelRatio;
 
-  const dpr =
-    Math.min(
-      window.devicePixelRatio || 1,
-      2
+    canvas.style.width = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
+
+    ctx.setTransform(
+        devicePixelRatio,
+        0,
+        0,
+        devicePixelRatio,
+        0,
+        0
     );
-
-  const w =
-    window.innerWidth;
-
-  const h =
-    window.innerHeight;
-
-
-  canvas.width =
-    Math.round(w * dpr);
-
-  canvas.height =
-    Math.round(h * dpr);
-
-
-  canvas.style.width =
-    w + "px";
-
-  canvas.style.height =
-    h + "px";
-
-
-  ctx.setTransform(
-    dpr,
-    0,
-    0,
-    dpr,
-    0,
-    0
-  );
-
-
-  ctx.lineCap =
-    "round";
-
-  ctx.lineJoin =
-    "round";
 }
-
 
 resizeCanvas();
 
-
-window.addEventListener(
-  "resize",
-  resizeCanvas
-);
+window.addEventListener("resize", () => {
+    resizeCanvas();
+});
 
 
-/* =====================================================
-   COLORS
-===================================================== */
+// ---------------------------------------------------------
+// ОЧИСТКА
+// ---------------------------------------------------------
 
-document
-  .querySelectorAll(".color")
-  .forEach(button => {
+function clearCanvas() {
+    ctx.save();
 
-    button.addEventListener(
-      "click",
-      () => {
-
-        document
-          .querySelectorAll(".color")
-          .forEach(b => {
-            b.classList.remove("active");
-          });
-
-
-        button.classList.add("active");
-
-
-        currentColor =
-          button.dataset.color;
-
-
-        fingerPoint.style.color =
-          currentColor;
-
-      }
+    ctx.setTransform(
+        devicePixelRatio,
+        0,
+        0,
+        devicePixelRatio,
+        0,
+        0
     );
 
-  });
+    ctx.clearRect(
+        0,
+        0,
+        window.innerWidth,
+        window.innerHeight
+    );
 
+    ctx.restore();
 
-/* =====================================================
-   CLEAR BUTTON
-===================================================== */
-
-function clearDrawing() {
-
-  ctx.clearRect(
-    0,
-    0,
-    window.innerWidth,
-    window.innerHeight
-  );
-
-
-  drawing = false;
-
-  lastX = null;
-
-  lastY = null;
+    lastPoint = null;
 }
 
 
-document
-  .getElementById("clearButton")
-  .addEventListener(
-    "click",
-    clearDrawing
-  );
-
-
-/* =====================================================
-   DISTANCE
-===================================================== */
+// ---------------------------------------------------------
+// ГЕОМЕТРИЯ
+// ---------------------------------------------------------
 
 function distance(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
 
-  const dx =
-    a.x - b.x;
-
-  const dy =
-    a.y - b.y;
-
-  const dz =
-    (a.z || 0) -
-    (b.z || 0);
-
-
-  return Math.sqrt(
-    dx * dx +
-    dy * dy +
-    dz * dz
-  );
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 
-/* =====================================================
-   ANGLE
-===================================================== */
-
+// Угол ABC
 function angle(a, b, c) {
 
-  const abx =
-    a.x - b.x;
+    const abx = a.x - b.x;
+    const aby = a.y - b.y;
 
-  const aby =
-    a.y - b.y;
+    const cbx = c.x - b.x;
+    const cby = c.y - b.y;
 
-  const cbx =
-    c.x - b.x;
+    const dot = abx * cbx + aby * cby;
 
-  const cby =
-    c.y - b.y;
+    const len1 = Math.sqrt(abx * abx + aby * aby);
+    const len2 = Math.sqrt(cbx * cbx + cby * cby);
 
+    if (len1 === 0 || len2 === 0) {
+        return 0;
+    }
 
-  const dot =
-    abx * cbx +
-    aby * cby;
+    let cos = dot / (len1 * len2);
 
+    cos = Math.max(-1, Math.min(1, cos));
 
-  const len1 =
-    Math.sqrt(
-      abx * abx +
-      aby * aby
-    );
-
-
-  const len2 =
-    Math.sqrt(
-      cbx * cbx +
-      cby * cby
-    );
-
-
-  if (
-    len1 === 0 ||
-    len2 === 0
-  ) {
-    return 0;
-  }
-
-
-  let cosine =
-    dot / (len1 * len2);
-
-
-  cosine =
-    Math.max(
-      -1,
-      Math.min(1, cosine)
-    );
-
-
-  return (
-    Math.acos(cosine) *
-    180 /
-    Math.PI
-  );
+    return Math.acos(cos) * 180 / Math.PI;
 }
 
 
-/* =====================================================
-   FINGER DETECTION
-===================================================== */
+// ---------------------------------------------------------
+// ОПРЕДЕЛЕНИЕ ПАЛЬЦЕВ
+// ---------------------------------------------------------
 
 /*
-  Проверка обычного пальца.
+    MediaPipe landmarks:
 
-  tip = кончик
-  pip = средний сустав
-  mcp = основание
+    0  wrist
+
+    Thumb:
+    1 CMC
+    2 MCP
+    3 IP
+    4 TIP
+
+    Index:
+    5 MCP
+    6 PIP
+    7 DIP
+    8 TIP
+
+    Middle:
+    9 MCP
+    10 PIP
+    11 DIP
+    12 TIP
+
+    Ring:
+    13 MCP
+    14 PIP
+    15 DIP
+    16 TIP
+
+    Pinky:
+    17 MCP
+    18 PIP
+    19 DIP
+    20 TIP
 */
 
-function isFingerUp(
-  lm,
-  tip,
-  pip,
-  mcp
-) {
 
-  const tipPoint =
-    lm[tip];
+function fingerExtended(lm, mcpIndex, pipIndex, dipIndex, tipIndex) {
 
-  const pipPoint =
-    lm[pip];
+    const mcp = lm[mcpIndex];
+    const pip = lm[pipIndex];
+    const dip = lm[dipIndex];
+    const tip = lm[tipIndex];
+    const wrist = lm[0];
 
-  const mcpPoint =
-    lm[mcp];
+    // Расстояние кончика до запястья
+    const tipDistance = distance(tip, wrist);
+    const pipDistance = distance(pip, wrist);
 
+    // Кончик должен быть заметно дальше от запястья,
+    // чем PIP.
+    const distanceTest = tipDistance > pipDistance * 1.10;
 
-  /*
-    Палец должен быть достаточно
-    длинным относительно ладони.
-  */
+    // Пальцевые суставы должны быть достаточно прямыми.
+    const angle1 = angle(mcp, pip, dip);
+    const angle2 = angle(pip, dip, tip);
 
-  const length =
-    distance(
-      tipPoint,
-      mcpPoint
+    const angleTest =
+        angle1 > 145 &&
+        angle2 > 140;
+
+    // Дополнительная проверка:
+    // кончик не должен находиться слишком близко к ладони.
+    const length =
+        distance(mcp, tip);
+
+    const palmLength =
+        distance(lm[0], lm[9]);
+
+    const lengthTest =
+        length > palmLength * 0.75;
+
+    return (
+        distanceTest &&
+        angleTest &&
+        lengthTest
     );
-
-
-  const palm =
-    distance(
-      lm[0],
-      lm[9]
-    );
-
-
-  /*
-    Проверяем прямоту пальца.
-  */
-
-  const straight =
-    angle(
-      tipPoint,
-      pipPoint,
-      mcpPoint
-    );
-
-
-  /*
-    Дополнительно смотрим,
-    находится ли кончик дальше
-    от запястья, чем сустав.
-  */
-
-  const tipFromWrist =
-    distance(
-      tipPoint,
-      lm[0]
-    );
-
-
-  const pipFromWrist =
-    distance(
-      pipPoint,
-      lm[0]
-    );
-
-
-  return (
-
-    length >
-    palm * 0.48
-
-    &&
-
-    straight >
-    135
-
-    &&
-
-    tipFromWrist >
-    pipFromWrist * 1.03
-
-  );
 }
 
 
-/*
-  Большой палец.
+// Большой палец определяем отдельно.
+// Он НЕ должен автоматически считаться поднятым,
+// если кисть сжата в кулак.
+function thumbExtended(lm) {
 
-  Для жестов нам достаточно
-  относительно простой проверки.
-*/
+    const wrist = lm[0];
 
-function isThumbUp(lm) {
+    const thumbMcp = lm[2];
+    const thumbIp = lm[3];
+    const thumbTip = lm[4];
 
-  const tip =
-    lm[4];
+    const indexMcp = lm[5];
 
-  const ip =
-    lm[3];
+    const tipDistance = distance(thumbTip, wrist);
+    const ipDistance = distance(thumbIp, wrist);
 
-  const mcp =
-    lm[2];
+    const palmLength = distance(wrist, indexMcp);
 
+    const distanceTest =
+        tipDistance > ipDistance * 1.08 &&
+        tipDistance > palmLength * 0.85;
 
-  const palm =
-    distance(
-      lm[0],
-      lm[9]
-    );
+    const angleTest =
+        angle(thumbMcp, thumbIp, thumbTip) > 135;
 
-
-  const length =
-    distance(
-      tip,
-      mcp
-    );
-
-
-  const straight =
-    angle(
-      tip,
-      ip,
-      mcp
-    );
-
-
-  return (
-    length >
-    palm * 0.40
-    &&
-    straight >
-    125
-  );
+    return distanceTest && angleTest;
 }
 
-
-/* =====================================================
-   COUNT FINGERS
-===================================================== */
 
 function getFingerState(lm) {
 
-  const thumb =
-    isThumbUp(lm);
+    const thumb = thumbExtended(lm);
 
-  const index =
-    isFingerUp(
-      lm,
-      8,
-      7,
-      5
+    const index = fingerExtended(
+        lm,
+        5, 6, 7, 8
     );
 
-  const middle =
-    isFingerUp(
-      lm,
-      12,
-      11,
-      9
+    const middle = fingerExtended(
+        lm,
+        9, 10, 11, 12
     );
 
-  const ring =
-    isFingerUp(
-      lm,
-      16,
-      15,
-      13
+    const ring = fingerExtended(
+        lm,
+        13, 14, 15, 16
     );
 
-  const pinky =
-    isFingerUp(
-      lm,
-      20,
-      19,
-      17
+    const pinky = fingerExtended(
+        lm,
+        17, 18, 19, 20
     );
 
+    /*
+        Для управления нам важны именно
+        index / middle / ring.
 
-  return {
-    thumb,
-    index,
-    middle,
-    ring,
-    pinky,
+        Большой палец НЕ учитываем в жестах,
+        иначе кулак часто превращается в "1".
+    */
 
-    count:
-      Number(thumb) +
-      Number(index) +
-      Number(middle) +
-      Number(ring) +
-      Number(pinky)
-  };
+    const count =
+        (index ? 1 : 0) +
+        (middle ? 1 : 0) +
+        (ring ? 1 : 0) +
+        (pinky ? 1 : 0);
+
+    return {
+        thumb,
+        index,
+        middle,
+        ring,
+        pinky,
+        count
+    };
 }
 
 
-/* =====================================================
-   SCREEN COORDINATES
-===================================================== */
+// ---------------------------------------------------------
+// ЖЕСТ
+// ---------------------------------------------------------
 
-/*
-  Это самая важная часть
-  для совпадения пальца и рисунка.
+function detectGesture(lm) {
 
-  Видео:
+    const f = getFingerState(lm);
 
-      object-fit: cover
+    /*
+        Главный принцип:
 
-  Поэтому сначала рассчитываем,
-  как именно браузер растянул
-  исходное видео на экран.
-*/
+        0 пальцев = ничего
+        1 палец = рисование
+        2 пальца = ластик
+        3 пальца = очистка
 
-function landmarkToScreen(
-  landmark
-) {
+        Большой палец намеренно не участвует.
+    */
 
-  const vw =
-    video.videoWidth;
+    if (
+        f.count === 0
+    ) {
+        return "none";
+    }
 
-  const vh =
-    video.videoHeight;
+    if (
+        f.count === 1 &&
+        f.index
+    ) {
+        return "draw";
+    }
 
+    if (
+        f.count === 2 &&
+        f.index &&
+        f.middle
+    ) {
+        return "erase";
+    }
 
-  const sw =
-    window.innerWidth;
+    if (
+        f.count === 3 &&
+        f.index &&
+        f.middle &&
+        f.ring
+    ) {
+        return "clear";
+    }
 
-  const sh =
-    window.innerHeight;
-
-
-  if (
-    !vw ||
-    !vh
-  ) {
-    return null;
-  }
-
-
-  /*
-    Масштаб cover.
-  */
-
-  const scale =
-    Math.max(
-      sw / vw,
-      sh / vh
-    );
-
-
-  const displayWidth =
-    vw * scale;
-
-  const displayHeight =
-    vh * scale;
-
-
-  /*
-    Излишек изображения,
-    который обрезается.
-  */
-
-  const cropX =
-    (
-      displayWidth -
-      sw
-    ) / 2;
-
-
-  const cropY =
-    (
-      displayHeight -
-      sh
-    ) / 2;
-
-
-  /*
-    Видео зеркальное,
-    поэтому X переворачиваем.
-  */
-
-  const x =
-    (1 - landmark.x) *
-    displayWidth -
-    cropX;
-
-
-  const y =
-    landmark.y *
-    displayHeight -
-    cropY;
-
-
-  return {
-    x,
-    y
-  };
+    return "none";
 }
 
 
-/* =====================================================
-   DRAW
-===================================================== */
+// ---------------------------------------------------------
+// СТАБИЛИЗАЦИЯ ЖЕСТА
+// ---------------------------------------------------------
 
-function drawLine(
-  x1,
-  y1,
-  x2,
-  y2
-) {
+function updateGesture(rawGesture) {
 
-  const dx =
-    x2 - x1;
+    if (rawGesture === gestureCandidate) {
 
-  const dy =
-    y2 - y1;
+        gestureFrames++;
+
+    } else {
+
+        gestureCandidate = rawGesture;
+        gestureFrames = 1;
+    }
+
+    /*
+        Не ждём долго.
+
+        2 кадра достаточно, чтобы убрать
+        случайное переключение 0 -> 1 -> 0,
+        но практически не добавляет задержку.
+    */
+
+    if (
+        gestureFrames >= 2 &&
+        currentGesture !== gestureCandidate
+    ) {
+
+        currentGesture = gestureCandidate;
+
+        if (currentGesture !== "clear") {
+            clearLock = false;
+        }
+    }
+
+    return currentGesture;
+}
 
 
-  const d =
-    Math.sqrt(
-      dx * dx +
-      dy * dy
+// ---------------------------------------------------------
+// КООРДИНАТЫ ПАЛЬЦА
+// ---------------------------------------------------------
+
+function landmarkToScreen(lm) {
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+
+    const sw = window.innerWidth;
+    const sh = window.innerHeight;
+
+    if (!vw || !vh) {
+        return {
+            x: sw / 2,
+            y: sh / 2
+        };
+    }
+
+    /*
+        Видео отображается через:
+
+        object-fit: cover
+
+        Поэтому нельзя просто сделать:
+
+        x = landmark.x * screenWidth
+
+        Это и было причиной смещения маркера.
+    */
+
+    const scale = Math.max(
+        sw / vw,
+        sh / vh
     );
 
+    const displayWidth = vw * scale;
+    const displayHeight = vh * scale;
 
-  /*
-    Если MediaPipe вдруг
-    потерял руку и координата
-    прыгнула далеко — не рисуем
-    огромную линию.
-  */
+    const cropX =
+        (displayWidth - sw) / 2;
 
-  if (d > 180) {
+    const cropY =
+        (displayHeight - sh) / 2;
 
-    lastX = x2;
+    /*
+        Камера и canvas зеркальные.
 
-    lastY = y2;
+        Поэтому X переворачиваем.
+    */
 
-    return;
-  }
+    let x =
+        (1 - lm.x) * displayWidth -
+        cropX;
+
+    let y =
+        lm.y * displayHeight -
+        cropY;
+
+    /*
+        Ограничиваем координаты экраном.
+    */
+
+    x = Math.max(
+        -50,
+        Math.min(sw + 50, x)
+    );
+
+    y = Math.max(
+        -50,
+        Math.min(sh + 50, y)
+    );
+
+    return { x, y };
+}
 
 
-  /*
-    ЛАСТИК
-  */
+// ---------------------------------------------------------
+// РИСОВАНИЕ
+// ---------------------------------------------------------
 
-  if (erasing) {
+function drawLine(from, to) {
+
+    if (!from || !to) {
+        return;
+    }
 
     ctx.save();
 
-    ctx.globalCompositeOperation =
-      "destination-out";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
 
-    ctx.lineWidth =
-      45;
+    /*
+        Не используем большую задерживающую
+        интерполяцию — линия идёт прямо за пальцем.
+    */
+
+    // Glow
+    ctx.globalCompositeOperation = "source-over";
+
+    ctx.shadowBlur = 24;
+    ctx.shadowColor = "#00ffff";
+
+    ctx.strokeStyle = "#00ffff";
+    ctx.lineWidth = 8;
 
     ctx.beginPath();
 
-    ctx.moveTo(
-      x1,
-      y1
-    );
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
 
-    ctx.lineTo(
-      x2,
-      y2
-    );
+    ctx.stroke();
+
+
+    // Ядро линии
+    ctx.shadowBlur = 8;
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
 
     ctx.stroke();
 
     ctx.restore();
-
-    return;
-  }
-
-
-  /*
-    РИСОВАНИЕ
-  */
-
-  ctx.save();
-
-  ctx.globalCompositeOperation =
-    "source-over";
-
-
-  /*
-    Светящееся свечение.
-  */
-
-  ctx.strokeStyle =
-    currentColor;
-
-  ctx.lineWidth =
-    7;
-
-  ctx.shadowColor =
-    currentColor;
-
-  ctx.shadowBlur =
-    20;
-
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    x1,
-    y1
-  );
-
-  ctx.lineTo(
-    x2,
-    y2
-  );
-
-  ctx.stroke();
-
-
-  ctx.restore();
-
-
-  /*
-    Яркое ядро.
-  */
-
-  ctx.save();
-
-  ctx.strokeStyle =
-    currentColor;
-
-  ctx.lineWidth =
-    2.5;
-
-  ctx.shadowBlur =
-    0;
-
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    x1,
-    y1
-  );
-
-  ctx.lineTo(
-    x2,
-    y2
-  );
-
-  ctx.stroke();
-
-
-  ctx.restore();
 }
 
 
-/* =====================================================
-   MEDIA PIPE
-===================================================== */
+// ---------------------------------------------------------
+// ЛАСТИК
+// ---------------------------------------------------------
 
-const hands =
-  new Hands({
-
-    locateFile: file => {
-
-      return (
-        "https://cdn.jsdelivr.net/npm/" +
-        "@mediapipe/hands/" +
-        file
-      );
-
-    }
-
-  });
-
-
-hands.setOptions({
-
-  /*
-    0 быстрее на телефоне.
-  */
-
-  modelComplexity: 0,
-
-  maxNumHands: 1,
-
-  minDetectionConfidence: 0.5,
-
-  minTrackingConfidence: 0.5
-
-});
-
-
-/* =====================================================
-   RESULTS
-===================================================== */
-
-hands.onResults(
-  results => {
-
-    /*
-      Рука не найдена.
-    */
-
-    if (
-      !results.multiHandLandmarks ||
-      results.multiHandLandmarks.length === 0
-    ) {
-
-      status.textContent =
-        "Покажи руку";
-
-      fingerPoint.style.display =
-        "none";
-
-      drawing = false;
-
-      erasing = false;
-
-      lastX = null;
-
-      lastY = null;
-
-      return;
-    }
-
-
-    const lm =
-      results.multiHandLandmarks[0];
-
-
-    const fingers =
-      getFingerState(lm);
-
-
-    const count =
-      fingers.count;
-
-
-    /*
-      Координата указательного
-      пальца.
-
-      Даже когда показываем
-      2 пальца, он остаётся
-      первым пальцем.
-    */
-
-    const point =
-      landmarkToScreen(
-        lm[8]
-      );
-
+function eraseAt(point) {
 
     if (!point) {
-      return;
-    }
-
-
-    /*
-      Показываем точку
-      непосредственно на кончике
-      указательного пальца.
-    */
-
-    fingerPoint.style.display =
-      "block";
-
-    fingerPoint.style.left =
-      point.x + "px";
-
-    fingerPoint.style.top =
-      point.y + "px";
-
-
-    /* =================================================
-       3 ПАЛЬЦА = СТЕРЕТЬ ВСЁ
-    ================================================= */
-
-    if (count === 3) {
-
-      status.textContent =
-        "🤟 Стереть всё";
-
-
-      drawing = false;
-
-      erasing = false;
-
-      lastX = null;
-
-      lastY = null;
-
-
-      /*
-        Очищаем только один раз,
-        пока человек держит 3 пальца.
-      */
-
-      if (!clearCooldown) {
-
-        clearDrawing();
-
-        clearCooldown = true;
-
-      }
-
-
-      return;
-    }
-
-
-    /*
-      Если количество стало не 3,
-      разрешаем следующее срабатывание.
-    */
-
-    if (count !== 3) {
-
-      clearCooldown = false;
-
-    }
-
-
-    /* =================================================
-       2 ПАЛЬЦА = ЛАСТИК
-    ================================================= */
-
-    if (count === 2) {
-
-      status.textContent =
-        "✌️ Ластик";
-
-
-      erasing = true;
-
-      drawing = true;
-
-
-      /*
-        Первый кадр ластика.
-      */
-
-      if (
-        lastX === null ||
-        lastY === null
-      ) {
-
-        lastX =
-          point.x;
-
-        lastY =
-          point.y;
-
         return;
-      }
+    }
 
+    ctx.save();
 
-      drawLine(
-        lastX,
-        lastY,
+    ctx.globalCompositeOperation =
+        "destination-out";
+
+    ctx.beginPath();
+
+    ctx.arc(
         point.x,
-        point.y
-      );
+        point.y,
+        30,
+        0,
+        Math.PI * 2
+    );
 
+    ctx.fill();
 
-      lastX =
-        point.x;
-
-      lastY =
-        point.y;
-
-
-      return;
-    }
-
-
-    /* =================================================
-       1 ПАЛЕЦ = РИСОВАНИЕ
-    ================================================= */
-
-    if (
-      count === 1 &&
-      fingers.index
-    ) {
-
-      status.textContent =
-        "☝️ Рисую";
-
-
-      erasing = false;
-
-
-      /*
-        Начало новой линии.
-      */
-
-      if (
-        lastX === null ||
-        lastY === null ||
-        !drawing
-      ) {
-
-        drawing = true;
-
-        lastX =
-          point.x;
-
-        lastY =
-          point.y;
-
-
-        /*
-          Точка старта.
-        */
-
-        ctx.save();
-
-        ctx.fillStyle =
-          currentColor;
-
-        ctx.shadowColor =
-          currentColor;
-
-        ctx.shadowBlur =
-          18;
-
-
-        ctx.beginPath();
-
-        ctx.arc(
-          point.x,
-          point.y,
-          3,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-
-        ctx.restore();
-
-
-        return;
-      }
-
-
-      /*
-        Никакого сглаживания.
-
-        Рисуем прямо от предыдущей
-        координаты к текущей.
-      */
-
-      drawLine(
-        lastX,
-        lastY,
-        point.x,
-        point.y
-      );
-
-
-      lastX =
-        point.x;
-
-      lastY =
-        point.y;
-
-
-      return;
-    }
-
-
-    /* =================================================
-       0 / 4 / 5 ПАЛЬЦЕВ
-    ================================================= */
-
-    status.textContent =
-      `Пальцев: ${count}`;
-
-
-    drawing = false;
-
-    erasing = false;
-
-    lastX = null;
-
-    lastY = null;
-
-  }
-);
-
-
-/* =====================================================
-   CAMERA PROCESSING
-===================================================== */
-
-async function processFrame() {
-
-  if (
-    !processing &&
-    video.readyState >= 2
-  ) {
-
-    processing = true;
-
-
-    try {
-
-      await hands.send({
-        image: video
-      });
-
-    } catch (error) {
-
-      console.error(
-        "Ошибка MediaPipe:",
-        error
-      );
-
-    }
-
-
-    processing = false;
-  }
-
-
-  requestAnimationFrame(
-    processFrame
-  );
+    ctx.restore();
 }
 
 
-/* =====================================================
-   START CAMERA
-===================================================== */
+// ---------------------------------------------------------
+// СТАТУС
+// ---------------------------------------------------------
 
-async function startCamera() {
+function updateStatus(gesture, fingers) {
 
-  /*
-    Не разрешаем нажимать кнопку
-    несколько раз.
-  */
+    if (gesture === "draw") {
 
-  if (cameraStarted) {
-    return;
-  }
+        statusEl.textContent =
+            "☝️ Рисование";
 
+        fingerPoint.style.background =
+            "#00ffff";
 
-  errorBox.textContent =
-    "";
+        fingerPoint.style.borderColor =
+            "#ffffff";
 
-  status.textContent =
-    "Запрашиваю камеру…";
+    } else if (gesture === "erase") {
 
+        statusEl.textContent =
+            "✌️ Ластик";
 
-  startButton.disabled =
-    true;
+        fingerPoint.style.background =
+            "#ff4040";
 
+        fingerPoint.style.borderColor =
+            "#ffffff";
 
-  try {
+    } else if (gesture === "clear") {
 
-    /*
-      Проверяем поддержку камеры.
-    */
+        statusEl.textContent =
+            "🤟 Очистка";
 
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
-    ) {
+        fingerPoint.style.background =
+            "#ff00ff";
 
-      throw new Error(
-        "Браузер не поддерживает камеру. Открой страницу через HTTPS."
-      );
-
-    }
-
-
-    /*
-      Сначала пробуем фронтальную
-      камеру.
-    */
-
-    try {
-
-      stream =
-        await navigator.mediaDevices
-          .getUserMedia({
-
-            video: {
-
-              facingMode: {
-                ideal: "user"
-              },
-
-              width: {
-                ideal: 1280
-              },
-
-              height: {
-                ideal: 720
-              },
-
-              frameRate: {
-                ideal: 60,
-                max: 60
-              }
-
-            },
-
-            audio: false
-
-          });
-
-    } catch (firstError) {
-
-      /*
-        Если настройки выше не подошли,
-        пробуем самый простой вариант.
-      */
-
-      console.warn(
-        "Первая попытка камеры не удалась:",
-        firstError
-      );
-
-
-      stream =
-        await navigator.mediaDevices
-          .getUserMedia({
-
-            video: true,
-
-            audio: false
-
-          });
-
-    }
-
-
-    /*
-      Передаём поток видео.
-    */
-
-    video.srcObject =
-      stream;
-
-
-    /*
-      Ждём загрузки видео.
-    */
-
-    await new Promise(
-      resolve => {
-
-        if (
-          video.readyState >= 1 &&
-          video.videoWidth > 0
-        ) {
-
-          resolve();
-
-          return;
-        }
-
-
-        video.onloadedmetadata =
-          () => {
-
-            resolve();
-
-          };
-
-      }
-    );
-
-
-    /*
-      Явно запускаем видео.
-    */
-
-    await video.play();
-
-
-    /*
-      Проверяем, что камера реально
-      начала отдавать кадры.
-    */
-
-    if (
-      !video.videoWidth ||
-      !video.videoHeight
-    ) {
-
-      throw new Error(
-        "Камера запустилась, но видеопоток не отдаёт изображение."
-      );
-
-    }
-
-
-    cameraStarted =
-      true;
-
-
-    /*
-      Убираем стартовый экран.
-    */
-
-    startScreen.style.display =
-      "none";
-
-
-    status.textContent =
-      "Покажи ☝️";
-
-
-    /*
-      Запускаем распознавание.
-    */
-
-    requestAnimationFrame(
-      processFrame
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "Camera error:",
-      error
-    );
-
-
-    /*
-      Останавливаем поток,
-      если он успел открыться.
-    */
-
-    if (stream) {
-
-      stream
-        .getTracks()
-        .forEach(
-          track => track.stop()
-        );
-
-      stream = null;
-    }
-
-
-    startButton.disabled =
-      false;
-
-
-    status.textContent =
-      "Камера не запущена";
-
-
-    /*
-      Понятная ошибка пользователю.
-    */
-
-    if (
-      error.name ===
-      "NotAllowedError"
-    ) {
-
-      errorBox.textContent =
-        "Доступ к камере запрещён. " +
-        "Разреши камеру для этого сайта в настройках браузера.";
-
-    } else if (
-      error.name ===
-      "NotFoundError"
-    ) {
-
-      errorBox.textContent =
-        "Камера не найдена на устройстве.";
-
-    } else if (
-      error.name ===
-      "NotReadableError"
-    ) {
-
-      errorBox.textContent =
-        "Камера занята другим приложением.";
+        fingerPoint.style.borderColor =
+            "#ffffff";
 
     } else {
 
-      errorBox.textContent =
-        "Не удалось запустить камеру: " +
-        error.message;
-
+        statusEl.textContent =
+            "✊ Нет действия";
     }
 
-  }
-
+    debugEl.textContent =
+        "Пальцев: " + fingers;
 }
 
 
-/* =====================================================
-   SAVE IMAGE
-===================================================== */
+// ---------------------------------------------------------
+// MEDIAPIPE
+// ---------------------------------------------------------
 
-document
-  .getElementById("saveButton")
-  .addEventListener(
+const hands = new Hands({
+    locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    }
+});
+
+hands.setOptions({
+
+    maxNumHands: 1,
+
+    modelComplexity: 0,
+
+    /*
+        Немного повышаем уверенность,
+        чтобы модель меньше путала пальцы.
+    */
+
+    minDetectionConfidence: 0.65,
+
+    minTrackingConfidence: 0.65
+});
+
+
+hands.onResults((results) => {
+
+    if (
+        !results.multiHandLandmarks ||
+        results.multiHandLandmarks.length === 0
+    ) {
+
+        fingerPoint.style.display = "none";
+
+        lastPoint = null;
+
+        updateStatus("none", 0);
+
+        return;
+    }
+
+    const lm =
+        results.multiHandLandmarks[0];
+
+    /*
+        САМАЯ ВАЖНАЯ ТОЧКА:
+
+        landmark 8 =
+        INDEX_FINGER_TIP
+
+        Именно его используем как маркер.
+    */
+
+    const indexTip =
+        lm[8];
+
+    const point =
+        landmarkToScreen(indexTip);
+
+    /*
+        Маркер ставим непосредственно
+        на кончик указательного пальца.
+    */
+
+    fingerPoint.style.display = "block";
+
+    fingerPoint.style.left =
+        point.x + "px";
+
+    fingerPoint.style.top =
+        point.y + "px";
+
+
+    const rawGesture =
+        detectGesture(lm);
+
+    const gesture =
+        updateGesture(rawGesture);
+
+    const fingerState =
+        getFingerState(lm);
+
+
+    updateStatus(
+        gesture,
+        fingerState.count
+    );
+
+
+    // -----------------------------------------------------
+    // РИСОВАНИЕ
+    // -----------------------------------------------------
+
+    if (gesture === "draw") {
+
+        if (lastPoint) {
+
+            drawLine(
+                lastPoint,
+                point
+            );
+        }
+
+        lastPoint = point;
+
+    }
+
+    // -----------------------------------------------------
+    // ЛАСТИК
+    // -----------------------------------------------------
+
+    else if (gesture === "erase") {
+
+        eraseAt(point);
+
+        lastPoint = null;
+    }
+
+    // -----------------------------------------------------
+    // ОЧИСТКА
+    // -----------------------------------------------------
+
+    else if (gesture === "clear") {
+
+        if (!clearLock) {
+
+            clearCanvas();
+
+            clearLock = true;
+        }
+
+        lastPoint = null;
+
+    }
+
+    else {
+
+        lastPoint = null;
+    }
+});
+
+
+// ---------------------------------------------------------
+// ОБРАБОТКА КАДРОВ
+// ---------------------------------------------------------
+
+async function processFrame() {
+
+    if (!cameraStarted) {
+        return;
+    }
+
+    requestAnimationFrame(processFrame);
+
+    if (processing) {
+        return;
+    }
+
+    if (
+        video.readyState <
+        HTMLMediaElement.HAVE_CURRENT_DATA
+    ) {
+        return;
+    }
+
+    processing = true;
+
+    try {
+
+        await hands.send({
+            image: video
+        });
+
+    } catch (e) {
+
+        console.error(
+            "MediaPipe error:",
+            e
+        );
+
+    } finally {
+
+        processing = false;
+    }
+}
+
+
+// ---------------------------------------------------------
+// ЗАПУСК КАМЕРЫ
+// ---------------------------------------------------------
+
+async function startCamera() {
+
+    errorEl.style.display = "none";
+    errorEl.textContent = "";
+
+    startButton.disabled = true;
+    startButton.textContent =
+        "Запускаю камеру...";
+
+    if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ) {
+
+        showError(
+            "Браузер не поддерживает доступ к камере. Открой сайт через HTTPS или localhost."
+        );
+
+        startButton.disabled = false;
+        startButton.textContent =
+            "📷 Запустить камеру";
+
+        return;
+    }
+
+    let stream = null;
+
+    try {
+
+        /*
+            Сначала просим фронтальную камеру.
+        */
+
+        stream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video: {
+
+                    facingMode: {
+                        ideal: "user"
+                    },
+
+                    width: {
+                        ideal: 1280
+                    },
+
+                    height: {
+                        ideal: 720
+                    },
+
+                    frameRate: {
+                        ideal: 60,
+                        max: 60
+                    }
+                },
+
+                audio: false
+            });
+
+    } catch (firstError) {
+
+        console.warn(
+            "Первая попытка камеры не удалась:",
+            firstError
+        );
+
+        try {
+
+            /*
+                Запасной вариант —
+                просто любая доступная камера.
+            */
+
+            stream =
+                await navigator.mediaDevices.getUserMedia({
+
+                    video: true,
+                    audio: false
+                });
+
+        } catch (secondError) {
+
+            console.error(
+                "Камера не запустилась:",
+                secondError
+            );
+
+            showCameraError(secondError);
+
+            startButton.disabled = false;
+
+            startButton.textContent =
+                "📷 Запустить камеру";
+
+            return;
+        }
+    }
+
+
+    video.srcObject = stream;
+
+    try {
+
+        await video.play();
+
+    } catch (e) {
+
+        console.warn(
+            "video.play():",
+            e
+        );
+    }
+
+
+    /*
+        Ждём реальные размеры камеры.
+    */
+
+    await waitForVideo();
+
+
+    cameraStarted = true;
+
+    startScreen.style.display = "none";
+
+    statusEl.textContent =
+        "✋ Покажи руку";
+
+    /*
+        Первый кадр.
+    */
+
+    requestAnimationFrame(
+        processFrame
+    );
+}
+
+
+function waitForVideo() {
+
+    return new Promise((resolve) => {
+
+        if (
+            video.videoWidth > 0 &&
+            video.videoHeight > 0
+        ) {
+            resolve();
+            return;
+        }
+
+        const check = () => {
+
+            if (
+                video.videoWidth > 0 &&
+                video.videoHeight > 0
+            ) {
+
+                resolve();
+
+            } else {
+
+                requestAnimationFrame(check);
+            }
+        };
+
+        check();
+    });
+}
+
+
+// ---------------------------------------------------------
+// ОШИБКИ
+// ---------------------------------------------------------
+
+function showError(message) {
+
+    errorEl.style.display = "block";
+
+    errorEl.textContent = message;
+}
+
+
+function showCameraError(error) {
+
+    if (
+        error &&
+        error.name === "NotAllowedError"
+    ) {
+
+        showError(
+            "Доступ к камере запрещён. Разреши камеру в настройках браузера и нажми кнопку ещё раз."
+        );
+
+        return;
+    }
+
+    if (
+        error &&
+        error.name === "NotFoundError"
+    ) {
+
+        showError(
+            "Камера не найдена на этом устройстве."
+        );
+
+        return;
+    }
+
+    if (
+        error &&
+        error.name === "NotReadableError"
+    ) {
+
+        showError(
+            "Камера занята другим приложением. Закрой приложения, использующие камеру, и попробуй снова."
+        );
+
+        return;
+    }
+
+    showError(
+        "Не удалось запустить камеру. Если ты открыл index.html напрямую, попробуй запустить его через localhost или HTTPS."
+    );
+}
+
+
+// ---------------------------------------------------------
+// КНОПКИ
+// ---------------------------------------------------------
+
+startButton.addEventListener(
+    "click",
+    startCamera
+);
+
+
+clearButton.addEventListener(
     "click",
     () => {
 
-      if (
-        !video.videoWidth ||
-        !video.videoHeight
-      ) {
-        return;
-      }
+        clearCanvas();
 
+        currentGesture = "none";
+        gestureCandidate = "none";
+        gestureFrames = 0;
+        clearLock = false;
 
-      const result =
-        document.createElement(
-          "canvas"
-        );
-
-
-      result.width =
-        video.videoWidth;
-
-      result.height =
-        video.videoHeight;
-
-
-      const rctx =
-        result.getContext("2d");
-
-
-      /*
-        Зеркальная камера.
-      */
-
-      rctx.save();
-
-      rctx.translate(
-        result.width,
-        0
-      );
-
-      rctx.scale(
-        -1,
-        1
-      );
-
-
-      rctx.drawImage(
-        video,
-        0,
-        0,
-        result.width,
-        result.height
-      );
-
-
-      rctx.restore();
-
-
-      /*
-        Рисунок.
-      */
-
-      rctx.drawImage(
-        canvas,
-        0,
-        0,
-        result.width,
-        result.height
-      );
-
-
-      const link =
-        document.createElement(
-          "a"
-        );
-
-
-      link.download =
-        "air-drawing.png";
-
-
-      link.href =
-        result.toDataURL(
-          "image/png"
-        );
-
-
-      link.click();
-
+        statusEl.textContent =
+            "✋ Покажи руку";
     }
-  );
-
-
-/* =====================================================
-   START BUTTON
-===================================================== */
-
-startButton.addEventListener(
-  "click",
-  startCamera
 );
 
+
+// ---------------------------------------------------------
+// СОХРАНЕНИЕ
+// ---------------------------------------------------------
+
+saveButton.addEventListener(
+    "click",
+    () => {
+
+        if (!cameraStarted) {
+            return;
+        }
+
+        const output =
+            document.createElement("canvas");
+
+        output.width =
+            window.innerWidth * devicePixelRatio;
+
+        output.height =
+            window.innerHeight * devicePixelRatio;
+
+        const octx =
+            output.getContext("2d");
+
+        octx.setTransform(
+            devicePixelRatio,
+            0,
+            0,
+            devicePixelRatio,
+            0,
+            0
+        );
+
+
+        /*
+            Рисуем кадр камеры так же,
+            как он отображается на экране.
+        */
+
+        const sw =
+            window.innerWidth;
+
+        const sh =
+            window.innerHeight;
+
+        const vw =
+            video.videoWidth;
+
+        const vh =
+            video.videoHeight;
+
+        const scale =
+            Math.max(
+                sw / vw,
+                sh / vh
+            );
+
+        const dw =
+            vw * scale;
+
+        const dh =
+            vh * scale;
+
+        const cropX =
+            (dw - sw) / 2;
+
+        const cropY =
+            (dh - sh) / 2;
+
+
+        octx.save();
+
+        octx.translate(sw, 0);
+        octx.scale(-1, 1);
+
+        octx.drawImage(
+            video,
+            -cropX,
+            -cropY,
+            dw,
+            dh
+        );
+
+        octx.restore();
+
+
+        /*
+            Поверх камеры добавляем рисунок.
+        */
+
+        octx.drawImage(
+            canvas,
+            0,
+            0,
+            canvas.width,
+            canvas.height,
+            0,
+            0,
+            sw,
+            sh
+        );
+
+
+        const link =
+            document.createElement("a");
+
+        link.download =
+            "air-draw.png";
+
+        link.href =
+            output.toDataURL("image/png");
+
+        link.click();
+    }
+);
 </script>
 
 </body>
