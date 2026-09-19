@@ -1,469 +1,506 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Осколки надежды</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0a0a0f;
-            font-family: 'Courier New', monospace;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .game {
-            max-width: 1000px;
-            width: 100%;
-            background: #07070c;
-            border: 2px solid #2a2a35;
-            border-radius: 28px;
-            padding: 25px;
-        }
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .title { color: #8a7aaa; font-size: 14px; letter-spacing: 2px; }
-        .stats { color: #6a6a8a; font-size: 12px; }
-        .scene {
-            background: #0c0c12;
-            border: 2px solid #2c2c3a;
-            border-radius: 20px;
-            padding: 28px;
-            min-height: 280px;
-            color: #e0e0ec;
-            font-size: 18px;
-            line-height: 1.65;
-            white-space: pre-wrap;
-            margin-bottom: 20px;
-            overflow-y: auto;
-            max-height: 380px;
-        }
-        .inventory-panel {
-            background: #0a0a12;
-            border: 2px solid #2a2a35;
-            border-radius: 40px;
-            padding: 10px 20px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px 15px;
-            align-items: center;
-        }
-        .inventory-title { color: #9a8aba; font-weight: bold; font-size: 14px; }
-        .inventory-items { display: flex; flex-wrap: wrap; gap: 6px 10px; }
-        .inventory-item {
-            background: #1a1a26;
-            border: 1px solid #4a4a66;
-            border-radius: 20px;
-            padding: 4px 12px;
-            color: #c0c0e0;
-            font-size: 13px;
-        }
-        .no-items { color: #6a6a8a; font-style: italic; font-size: 13px; }
-        .choices {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 25px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .choice {
-            background: #111117;
-            border: 2px solid #33333f;
-            color: #d0d0da;
-            padding: 12px 18px;
-            font-size: 15px;
-            border-radius: 16px;
-            text-align: left;
-            cursor: pointer;
-            transition: 0.1s;
-            font-family: inherit;
-        }
-        .choice:hover:not(.choice-disabled) {
-            background: #1e1e2a;
-            border-color: #7a7a9a;
-            transform: translateX(3px);
-        }
-        .choice-disabled {
-            background: #0a0a12;
-            border-color: #2a2a35;
-            color: #6a6a8a;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-        .bottom-panel {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: #0c0c12;
-            border: 2px solid #2a2a35;
-            border-radius: 20px;
-            padding: 12px 20px;
-            flex-wrap: wrap;
-        }
-        .arrow {
-            background: #111117;
-            border: 2px solid #33333f;
-            color: #d0d0da;
-            width: 44px;
-            height: 44px;
-            border-radius: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        .arrow.disabled { opacity: 0.3; cursor: not-allowed; }
-        .save-code {
-            background: #0f0f17;
-            border: 2px solid #333340;
-            border-radius: 40px;
-            padding: 8px 16px;
-            flex: 1;
-            color: #b0b0d0;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        .reset-btn {
-            background: #1a1a26;
-            border: 2px solid #4a4a66;
-            color: #d0d0e0;
-            padding: 8px 18px;
-            border-radius: 30px;
-            cursor: pointer;
-        }
-        .reset-btn:hover { background: #2a2a36; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0a0a12; }
-        ::-webkit-scrollbar-thumb { background: #4a4a66; border-radius: 10px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+  <title>Air Drawing</title>
+
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    #container {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #video {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      transform: scaleX(-1);
+    }
+
+    #ui {
+      position: absolute;
+      z-index: 10;
+      top: env(safe-area-inset-top, 15px);
+      left: 0;
+      right: 0;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .panel {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      pointer-events: auto;
+    }
+
+    button {
+      border: 0;
+      color: white;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      min-width: 42px;
+      height: 42px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    button.active {
+      box-shadow: 0 0 0 2px white inset;
+    }
+
+    .color {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.7);
+    }
+
+    #red {
+      background: #ff304f;
+    }
+
+    #blue {
+      background: #3080ff;
+    }
+
+    #green {
+      background: #00ff88;
+    }
+
+    #yellow {
+      background: #ffe600;
+    }
+
+    #white {
+      background: white;
+    }
+
+    #status {
+      position: absolute;
+      z-index: 10;
+      bottom: calc(env(safe-area-inset-bottom, 15px) + 15px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 16px;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      white-space: nowrap;
+      font-size: 14px;
+    }
+
+    #startScreen {
+      position: absolute;
+      z-index: 20;
+      inset: 0;
+      background: #050505;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 30px;
+    }
+
+    #startScreen h1 {
+      font-size: 32px;
+      margin: 0 0 12px;
+    }
+
+    #startScreen p {
+      opacity: 0.7;
+      max-width: 350px;
+      line-height: 1.5;
+    }
+
+    #startButton {
+      margin-top: 20px;
+      padding: 14px 24px;
+      height: auto;
+      border-radius: 30px;
+      background: white;
+      color: black;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    #error {
+      color: #ff5c75;
+      margin-top: 15px;
+      max-width: 350px;
+    }
+  </style>
 </head>
+
 <body>
-<div class="game" id="gameContainer">
-    <div class="game-header">
-        <div class="title" id="gameTitle">❄️ ОСКОЛКИ НАДЕЖДЫ ❄️</div>
-        <div class="stats" id="statsArea">реплик: 0 | предметов: 0</div>
+
+<div id="container">
+
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas"></canvas>
+
+  <div id="ui">
+
+    <div class="panel">
+      <button class="color active" id="white" data-color="#ffffff"></button>
+      <button class="color" id="red" data-color="#ff304f"></button>
+      <button class="color" id="blue" data-color="#3080ff"></button>
+      <button class="color" id="green" data-color="#00ff88"></button>
+      <button class="color" id="yellow" data-color="#ffe600"></button>
     </div>
-    <div id="sceneText" class="scene">Загрузка...</div>
-    <div class="inventory-panel">
-        <span class="inventory-title" id="invTitle">📦 ИНВЕНТАРЬ</span>
-        <div id="inventoryList" class="inventory-items"><span class="no-items">пусто</span></div>
+
+    <div class="panel">
+      <button id="clear">🗑️</button>
+      <button id="save">📸</button>
     </div>
-    <div id="choicesContainer" class="choices"></div>
-    <div class="bottom-panel">
-        <div style="display:flex; gap:8px"><div id="arrowLeft" class="arrow">←</div><div id="arrowRight" class="arrow">→</div></div>
-        <input id="saveCode" class="save-code" readonly value="---">
-        <button class="reset-btn" id="resetBtn">🔄 СБРОС</button>
-    </div>
+
+  </div>
+
+  <div id="status">Покажи указательный палец ☝️</div>
+
+  <div id="startScreen">
+    <h1>✨ Air Drawing</h1>
+    <p>
+      Разреши доступ к камере и рисуй указательным пальцем прямо в воздухе.
+    </p>
+
+    <button id="startButton">Запустить камеру</button>
+
+    <div id="error"></div>
+  </div>
+
 </div>
 
 <script>
-    // Тексты на русском
-    const texts = {
-        invTitle: "📦 ИНВЕНТАРЬ",
-        emptyInv: "пусто",
-        statsReplic: "реплик:",
-        statsItems: "предметов:",
-        resetBtn: "🔄 СБРОС",
-        titleGame: "❄️ ОСКОЛКИ НАДЕЖДЫ ❄️",
-        continueBtn: "→ продолжить",
-        nextBtn: "→ дальше",
-        restartChoice: "→ начать заново",
-        
-        startScene: "📍 ПОДЪЕЗД\n\nТы приходишь в себя на холодном бетонном полу. Голова гудит. Рядом лежит девушка — её лицо бледное. В руке зажата фотография и записка: «Школа №7. Там правда». Нужно выбираться.",
-        choiceGirl: "осмотреть девушку",
-        choiceExit: "выйти на улицу",
-        choiceSearchPorch: "обыскать подъезд",
-        girlCheck: "Кожа холодная. Она не дышит. На шее странная отметина. На обороте фото: «Помни. Ты был здесь». Мурашки по спине.",
-        searchPorchRes: "В почтовом ящике находишь нож и спички. Под ним газета: «Эпидемия. Город на карантине». Дата — три недели назад.",
-        streetStart: "📍 УЛИЦА\n\nСерый туман над разбитым асфальтом. Перевёрнутые машины. Вдалеке школа №7. Справа тёмный парк. Холод пробирает до костей.",
-        choiceSchool: "идти к школе",
-        choicePark: "зайти в парк",
-        choiceMap: "посмотреть карту",
-        mapCheck: "На карте: школа, парк, лес, лагерь выживших, военный бункер. Красным обведена школа: «Начало всего».",
-        parkEntrance: "📍 ПАРК\n\nСтарые деревья. На скамейке девочка в школьной форме. Рядом рюкзак.",
-        choiceApproach: "подойти к девочке",
-        choiceBackpack: "осмотреть рюкзак",
-        girlParkTalk: "Девочка: «Иди в школу. Там ответы». Она даёт отмычку и исчезает.",
-        parkBackpackRes: "В рюкзаке: еда, вода, карта. Дневник: «Они пришли ночью».",
-        schoolHall: "📍 ШКОЛА\n\nДвери распахнуты. Пахнет плесенью. Стены в граффити: «ОНИ ЗНАЮТ», «НЕ ХОДИ В ПОДВАЛ».",
-        choiceClass: "пойти в класс",
-        choiceBasement: "спуститься в подвал",
-        schoolClass: "Класс разгромлен. На доске: «КЛЮЧ В КНИГЕ».",
-        searchBooks: "искать в книгах",
-        searchCloset: "осмотреть шкаф",
-        booksRes: "В книге находишь отмычки и фото класса. На обороте: «Я знаю, ты вернёшься».",
-        closetRes: "В шкафу фонарик. Дневник: «Они из лаборатории».",
-        basementDoor: "Дверь в подвал заперта. Надпись: «ОНИ ТАМ». Слышна капель.",
-        choicePick: "вскрыть отмычкой",
-        basementInside: "В углу сидит человек в плаще. «Я Сергей, учитель. Вирус из лаборатории. Выжившие ушли в лес».",
-        choiceTrust: "довериться",
-        choiceAsk: "спросить подробности",
-        trustRes: "Сергей: «Пойдём в лагерь». Он даёт аптечку и бинты.",
-        askRes: "«Эпидемия три недели назад. Люди меняются. Бункер на востоке». Он даёт рацию.",
-        campArrival: "📍 ЛАГЕРЬ\n\nПалатки, костёр. Старейшина: «Новичок? Проходи». Рядом охотник Дмитрий и врач Анна.",
-        choiceElder: "поговорить со старейшиной",
-        choiceAskFood: "попросить еды",
-        choiceExplore: "осмотреть лагерь",
-        elderTalk: "«На востоке военный бункер. Там припасы. Поможешь найти — примешь нас в семью». Он даёт карту.",
-        askFoodRes: "Тебе дают еду и воду. «Держи, мы все братья».",
-        exploreCamp: "Старая рация. Нужны батарейки.",
-        fixRadio: "починить рацию",
-        fixRadioRes: "Рация ожила. Слышен голос: «...помощь... бункер 7... координаты...». Люди плачут от радости.",
-        campStayEnd: "🏆 КОНЦОВКА: Ты остаёшься в лагере. Живёшь в мире, помогаешь другим. Но чувствуешь — правда осталась где-то в школе. Однажды ночью ты смотришь на звёзды и понимаешь — твой путь ещё не закончен. 🏆",
-        forestPath: "📍 ЛЕС\n\nВысокие сосны, снег. Дмитрий идёт впереди. «Бункер должен быть где-то здесь». Тропа раздваивается.",
-        choiceHut: "пойти к избушке",
-        choiceDeep: "идти дальше по тропе",
-        hutKnock: "постучать",
-        hutAround: "обойти вокруг",
-        hutKnockRes: "Старушка: «Заходите, погрейтесь». Она даёт еду и спички. «Бункер? Идите дальше по тропе, за оврагом».",
-        hutAroundRes: "За избушкой находишь старый топор.",
-        forestDeep: "Глубже в лесу. Слышны звуки. Впереди железная дверь, вросшая в землю. Военный бункер!",
-        bunkerDoor: "Тяжёлая железная дверь. Кодовая панель. Нужен код доступа.",
-        bunkerOpenRes: "Дверь открывается. Внутри — склад: ящики с едой, водой, медикаментами, оружием. Анна плачет. Старейшина жмёт руку: «Ты спас нас всех!»",
-        bunkerInside: "Внутри бункера тепло и безопасно. На стенах карты, радиостанция. Выжившие обустраиваются. Ты смотришь на фотографию девочки из подъезда — она улыбается. Кажется, она знала, что всё закончится хорошо.",
-        goodEnding: "✨✨✨ ХОРОШАЯ КОНЦОВКА ✨✨✨\n\nВы нашли бункер и спасли лагерь. Теперь у вас есть убежище, припасы и будущее. Вы вместе — а значит, выживете. Город остался позади, но впереди новая жизнь. Фотография девочки всегда с тобой — напоминание о том, что надежда умирает последней. ✨✨✨",
-        defaultNext: "Ты продолжаешь путь по пустошам..."
-    };
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
 
-    // Инвентарь
-    let inventory = {
-        'еда':0,'вода':0,'бинты':0,'аптечка':0,'батарейки':0,'спички':0,
-        'верёвка':0,'отмычка':0,'нож':0,'фонарик':0,'рация':0,'карта':0
-    };
-    const itemNames = {
-        'еда':'🍞 Еда','вода':'💧 Вода','бинты':'🩹 Бинты',
-        'аптечка':'💊 Аптечка','батарейки':'🔋 Батарейки',
-        'спички':'🔥 Спички','верёвка':' Верёвка',
-        'отмычка':'🔓 Отмычка','нож':'🔪 Нож','фонарик':'🔦 Фонарик',
-        'рация':'📻 Рация','карта':'🗺️ Карта'
-    };
-    
-    function addItem(id,q=1){ if(inventory[id]!==undefined){ inventory[id]+=q; updateInvDisplay(); } }
-    function removeItem(id,q=1){ if(inventory[id]>=q){ inventory[id]-=q; updateInvDisplay(); return true; } return false; }
-    function hasItem(id,q=1){ return inventory[id]>=q; }
-     
-    function updateInvDisplay(){
-        let items=[];
-        for(let [id,qty] of Object.entries(inventory)) if(qty>0) items.push(`<span class="inventory-item">${itemNames[id]} x${qty}</span>`);
-        document.getElementById('inventoryList').innerHTML = items.length ? items.join('') : `<span class="no-items">${texts.emptyInv}</span>`;
-        let total=Object.values(inventory).reduce((a,b)=>a+b,0);
-        document.getElementById('statsArea').innerHTML = `${texts.statsReplic} ${replicaCount} | ${texts.statsItems} ${total}`;
-        document.getElementById('invTitle').innerText = texts.invTitle;
-        document.getElementById('resetBtn').innerText = texts.resetBtn;
-        document.getElementById('gameTitle').innerText = texts.titleGame;
+  const startScreen = document.getElementById("startScreen");
+  const startButton = document.getElementById("startButton");
+  const status = document.getElementById("status");
+  const errorBox = document.getElementById("error");
+
+  let currentColor = "#ffffff";
+  let drawing = false;
+  let lastX = null;
+  let lastY = null;
+
+  // Настройки кисти
+  const brushSize = 7;
+  const glowSize = 25;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+  }
+
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
+
+  // -----------------------------
+  // Цвет кисти
+  // -----------------------------
+
+  document.querySelectorAll(".color").forEach(button => {
+    button.addEventListener("click", () => {
+
+      document
+        .querySelectorAll(".color")
+        .forEach(b => b.classList.remove("active"));
+
+      button.classList.add("active");
+
+      currentColor = button.dataset.color;
+    });
+  });
+
+  // -----------------------------
+  // Очистить рисунок
+  // -----------------------------
+
+  document.getElementById("clear").addEventListener("click", () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    lastX = null;
+    lastY = null;
+    drawing = false;
+  });
+
+  // -----------------------------
+  // Сохранить изображение
+  // -----------------------------
+
+  document.getElementById("save").addEventListener("click", () => {
+
+    const result = document.createElement("canvas");
+
+    result.width = video.videoWidth || window.innerWidth;
+    result.height = video.videoHeight || window.innerHeight;
+
+    const rctx = result.getContext("2d");
+
+    // Камера
+    rctx.save();
+    rctx.translate(result.width, 0);
+    rctx.scale(-1, 1);
+
+    rctx.drawImage(
+      video,
+      0,
+      0,
+      result.width,
+      result.height
+    );
+
+    rctx.restore();
+
+    // Рисунок
+    rctx.drawImage(
+      canvas,
+      0,
+      0,
+      result.width,
+      result.height
+    );
+
+    const link = document.createElement("a");
+    link.download = "air-drawing.png";
+    link.href = result.toDataURL("image/png");
+
+    link.click();
+  });
+
+  // -----------------------------
+  // MediaPipe Hands
+  // -----------------------------
+
+  const hands = new Hands({
+    locateFile: file => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
     }
-     
-    let currentLocation="Подъезд", sceneId="start", ending=null, replicaCount=0;
-    let metGirl=false,injured=false,park=false,metStranger=false,metSurvivors=false,helpedOldWoman=false,radioFixed=false,hasKeyCard=false,bunkerFound=false;
-    let history=[],historyIndex=-1,isViewingHistory=false;
-    const sceneEl=document.getElementById('sceneText'), choicesEl=document.getElementById('choicesContainer');
-     
-    function addReplica(){ replicaCount++; updateInvDisplay(); }
-    function addToHistory(text){ history.push(text); historyIndex=history.length-1; isViewingHistory=false; }
-    function updateArrows(){ arrowLeft.classList.toggle('disabled',historyIndex<=0); arrowRight.classList.toggle('disabled',historyIndex>=history.length-1||!isViewingHistory); }
-     
-    function addChoice(text, nextScene, nextLoc=null, needItem=null, needQty=1, useItem=null){
-        let btn=document.createElement('button'); btn.className='choice';
-        let canDo=!needItem||hasItem(needItem,needQty);
-        if(!canDo){ btn.classList.add('choice-disabled'); btn.disabled=true; btn.innerText=`${text} ❌ (нужно: ${itemNames[needItem]||needItem})`; }
-        else{ btn.innerText=text; btn.onclick=()=>{ if(useItem&&needItem) removeItem(useItem,needQty); if(nextLoc) currentLocation=nextLoc; sceneId=nextScene; ending=null; render(); }; }
-        choicesEl.appendChild(btn);
+  });
+
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.6,
+    minTrackingConfidence: 0.6
+  });
+
+  hands.onResults(results => {
+
+    if (!results.multiHandLandmarks ||
+        results.multiHandLandmarks.length === 0) {
+
+      status.textContent = "Покажи руку ☝️";
+
+      drawing = false;
+      lastX = null;
+      lastY = null;
+
+      return;
     }
-    function addNext(nextScene,nextLoc=null){
-        let btn=document.createElement('button'); btn.className='choice'; btn.innerText=texts.nextBtn;
-        btn.onclick=()=>{ if(nextLoc) currentLocation=nextLoc; sceneId=nextScene; render(); };
-        choicesEl.appendChild(btn);
+
+    const landmarks = results.multiHandLandmarks[0];
+
+    /*
+      MediaPipe:
+      8 = кончик указательного пальца
+      6 = средняя фаланга указательного пальца
+      5 = основание указательного пальца
+    */
+
+    const tip = landmarks[8];
+    const pip = landmarks[6];
+    const mcp = landmarks[5];
+
+    /*
+      Проверяем, поднят ли указательный палец.
+      Координата Y меньше = палец выше.
+    */
+
+    const indexIsUp =
+      tip.y < pip.y &&
+      pip.y < mcp.y;
+
+    if (!indexIsUp) {
+
+      status.textContent = "Подними указательный палец ☝️";
+
+      drawing = false;
+      lastX = null;
+      lastY = null;
+
+      return;
     }
-     
-    function render(){
-        if(isViewingHistory) return;
-        choicesEl.innerHTML='';
-        if(ending){ sceneEl.innerText=ending; addChoice(texts.restartChoice,'start','Подъезд'); addToHistory(ending); return; }
-        let text=""; addReplica();
-        // Логика сцен
-        if(currentLocation==="Подъезд" && sceneId==="start"){
-            text=texts.startScene;
-            addChoice(texts.choiceGirl,"girl_check","Подъезд"); 
-            addChoice(texts.choiceExit,"street_start","Улица"); 
-            addChoice(texts.choiceSearchPorch,"search_porch","Подъезд");
-        } else if(currentLocation==="Подъезд" && sceneId==="girl_check"){ 
-            text=texts.girlCheck; metGirl=true; 
-            addChoice(texts.choiceExit,"street_start","Улица"); 
-            addChoice(texts.choiceSearchPorch,"search_porch","Подъезд");
-        } else if(currentLocation==="Подъезд" && sceneId==="search_porch"){ 
-            text=texts.searchPorchRes; addItem('нож',1); addItem('спички',3); 
-            addChoice(texts.choiceExit,"street_start","Улица");
-        } else if(currentLocation==="Улица" && sceneId==="street_start"){ 
-            text=texts.streetStart; 
-            addChoice(texts.choiceSchool,"school_hall","Школа"); 
-            addChoice(texts.choicePark,"park_entrance","Парк"); 
-            if(hasItem('карта')) addChoice(texts.choiceMap,"map_check","Улица");
-        } else if(currentLocation==="Улица" && sceneId==="map_check"){ 
-            text=texts.mapCheck; 
-            addChoice(texts.choiceSchool,"school_hall","Школа"); 
-            addChoice("→ Лагерь","camp_arrival","Лагерь выживших");
-        } else if(currentLocation==="Парк" && sceneId==="park_entrance"){ 
-            text=texts.parkEntrance; 
-            addChoice(texts.choiceApproach,"girl_park_talk","Парк"); 
-            addChoice(texts.choiceBackpack,"park_backpack","Парк"); 
-            addChoice(texts.choiceExit,"street_start","Улица");
-        } else if(currentLocation==="Парк" && sceneId==="girl_park_talk"){ 
-            text=texts.girlParkTalk; addItem('отмычка',1); 
-            addChoice(texts.choiceBackpack,"park_backpack","Парк"); 
-            addChoice(texts.choiceExit,"street_start","Улица");
-        } else if(currentLocation==="Парк" && sceneId==="park_backpack"){ 
-            text=texts.parkBackpackRes; addItem('еда',2); addItem('вода',2); addItem('карта',1); 
-            addChoice("← назад","park_entrance","Парк");
-        } else if(currentLocation==="Школа" && sceneId==="school_hall"){ 
-            text=texts.schoolHall; 
-            addChoice(texts.choiceClass,"school_class","Школа"); 
-            addChoice(texts.choiceBasement,"basement_door","Школа"); 
-            addChoice(texts.choiceExit,"street_start","Улица");
-        } else if(currentLocation==="Школа" && sceneId==="school_class"){ 
-            text=texts.schoolClass; 
-            addChoice(texts.searchBooks,"search_books","Школа"); 
-            addChoice(texts.searchCloset,"search_closet","Школа"); 
-            addChoice("← назад","school_hall","Школа");
-        } else if(currentLocation==="Школа" && sceneId==="search_books"){ 
-            text=texts.booksRes; addItem('отмычка',2); 
-            addChoice(texts.searchCloset,"search_closet","Школа"); 
-            addChoice("← назад","school_hall","Школа");
-        } else if(currentLocation==="Школа" && sceneId==="search_closet"){ 
-            text=texts.closetRes; addItem('фонарик',1); 
-            addChoice("← назад","school_hall","Школа");
-        } else if(currentLocation==="Школа" && sceneId==="basement_door"){ 
-            text=texts.basementDoor; 
-            if(hasItem('отмычка')) addChoice(texts.choicePick,"basement_inside","Школа",'отмычка',1,'отмычка'); 
-            else addChoice("отмычка","basement_inside","Школа",'отмычка'); 
-            addChoice("← назад","school_hall","Школа");
-        } else if(currentLocation==="Школа" && sceneId==="basement_inside"){ 
-            text=texts.basementInside; metStranger=true; 
-            addChoice(texts.choiceTrust,"basement_trust","Школа"); 
-            addChoice(texts.choiceAsk,"basement_ask","Школа");
-        } else if(currentLocation==="Школа" && sceneId==="basement_trust"){ 
-            text=texts.trustRes; addItem('аптечка',1); addItem('бинты',2); 
-            addChoice("→ Лагерь","camp_arrival","Лагерь выживших"); 
-            addChoice("← остаться","school_hall","Школа");
-        } else if(currentLocation==="Школа" && sceneId==="basement_ask"){ 
-            text=texts.askRes; addItem('рация',1); 
-            addChoice("→ Лагерь","camp_arrival","Лагерь выживших"); 
-            addChoice("← остаться","school_hall","Школа");
-        } else if(currentLocation==="Лагерь выживших" && sceneId==="camp_arrival"){ 
-            text=texts.campArrival; metSurvivors=true; 
-            addChoice(texts.choiceElder,"elder_talk","Лагерь выживших"); 
-            addChoice(texts.choiceAskFood,"ask_food_camp","Лагерь выживших"); 
-            addChoice(texts.choiceExplore,"explore_camp","Лагерь выживших");
-        } else if(currentLocation==="Лагерь выживших" && sceneId==="elder_talk"){ 
-            text=texts.elderTalk; addItem('карта',1); 
-            addChoice("→ в лес","forest_path","Лес"); 
-            addChoice("отказаться","camp_stay","Лагерь выживших");
-        } else if(currentLocation==="Лагерь выживших" && sceneId==="ask_food_camp"){ 
-            text=texts.askFoodRes; addItem('еда',2); addItem('вода',2); 
-            addChoice(texts.choiceElder,"elder_talk","Лагерь выживших"); 
-            addChoice(texts.choiceExplore,"explore_camp","Лагерь выживших");
-        } else if(currentLocation==="Лагерь выживших" && sceneId==="explore_camp"){ 
-            text=texts.exploreCamp; 
-            if(hasItem('батарейки')) addChoice(texts.fixRadio,"fix_radio","Лагерь выживших",'батарейки',2,'батарейки'); 
-            addChoice("← назад","camp_arrival","Лагерь выживших");
-        } else if(currentLocation==="Лагерь выживших" && sceneId==="fix_radio"){ 
-            text=texts.fixRadioRes; radioFixed=true; 
-            addChoice("← назад","camp_arrival","Лагерь выживших");
-        } else if(currentLocation==="Лагерь выживших" && sceneId==="camp_stay"){ 
-            ending=texts.campStayEnd; render(); return;
-        } else if(currentLocation==="Лес" && sceneId==="forest_path"){ 
-            text=texts.forestPath; 
-            addChoice(texts.choiceHut,"forest_hut","Лес"); 
-            addChoice(texts.choiceDeep,"forest_deep","Лес"); 
-            addChoice("← назад","camp_arrival","Лагерь выживших");
-        } else if(currentLocation==="Лес" && sceneId==="forest_hut"){ 
-            text="Охотничья избушка. Из трубы идёт дым."; 
-            addChoice(texts.hutKnock,"hut_knock","Лес"); 
-            addChoice(texts.hutAround,"hut_around","Лес");
-        } else if(currentLocation==="Лес" && sceneId==="hut_knock"){ 
-            text=texts.hutKnockRes; addItem('еда',2);addItem('вода',2);addItem('спички',3); helpedOldWoman=true; 
-            addChoice(texts.choiceDeep,"forest_deep","Лес"); 
-            addChoice("← назад","forest_path","Лес");
-        } else if(currentLocation==="Лес" && sceneId==="hut_around"){ 
-            text=texts.hutAroundRes; addItem('нож',1); 
-            addChoice(texts.hutKnock,"hut_knock","Лес");
-        } else if(currentLocation==="Лес" && sceneId==="forest_deep"){ 
-            text=texts.forestDeep; 
-            addChoice("осмотреть дверь","bunker_door","Бункер"); 
-            addChoice("← назад","forest_path","Лес");
-        } else if(currentLocation==="Бункер" && sceneId==="bunker_door"){ 
-            text=texts.bunkerDoor; 
-            if(hasItem('карта')) addChoice("использовать карту","bunker_open","Бункер",'карта',1,'карта'); 
-            else addChoice("взломать","bunker_open","Бункер",'отмычка'); 
-            addChoice("← назад","forest_path","Лес");
-        } else if(currentLocation==="Бункер" && sceneId==="bunker_open"){ 
-            text=texts.bunkerOpenRes; addItem('еда',20);addItem('вода',20);addItem('аптечка',5);addItem('бинты',10); bunkerFound=true; 
-            addChoice("войти","bunker_inside","Бункер");
-        } else if(currentLocation==="Бункер" && sceneId==="bunker_inside"){ 
-            text=texts.bunkerInside; 
-            addChoice("остаться","final_good","Бункер");
-        } else if(currentLocation==="Бункер" && sceneId==="final_good"){ 
-            ending=texts.goodEnding; render(); return;
-        } else { 
-            addNext("street_start","Улица"); 
-            text=texts.defaultNext; 
-        }
-        let locationTag = `<span style="background:#1e1e2a; padding:3px 12px; border-radius:20px; font-size:12px;">📍 ${currentLocation}</span><br><br>`;
-        sceneEl.innerHTML = locationTag + text.replace(/\n/g,'<br>');
-        addToHistory(text); updateArrows(); updateInvDisplay();
+
+    status.textContent = "Рисую ✨";
+
+    /*
+      Видео зеркальное.
+      Поэтому X инвертируем.
+    */
+
+    const x = (1 - tip.x) * canvas.width;
+    const y = tip.y * canvas.height;
+
+    if (!drawing) {
+      lastX = x;
+      lastY = y;
+      drawing = true;
+      return;
     }
-     
-    const arrowLeft=document.getElementById('arrowLeft'), arrowRight=document.getElementById('arrowRight');
-    arrowLeft.onclick=()=>{ 
-        if(historyIndex>0) { 
-            historyIndex--; 
-            sceneEl.innerText=history[historyIndex]; 
-            choicesEl.innerHTML=''; 
-            let btn=document.createElement('button'); 
-            btn.className='choice'; 
-            btn.innerText=texts.continueBtn; 
-            btn.onclick=()=>{ isViewingHistory=false; render(); }; 
-            choicesEl.appendChild(btn); 
-            isViewingHistory=true; 
-            updateArrows(); 
-        } 
-    };
-    arrowRight.onclick=()=>{ 
-        if(isViewingHistory && historyIndex<history.length-1){ 
-            historyIndex++; 
-            sceneEl.innerText=history[historyIndex]; 
-            choicesEl.innerHTML=''; 
-            let btn=document.createElement('button'); 
-            btn.className='choice'; 
-            btn.innerText=texts.continueBtn; 
-            btn.onclick=()=>{ isViewingHistory=false; render(); }; 
-            choicesEl.appendChild(btn); 
-            isViewingHistory=true; 
-            updateArrows(); 
-        } 
-    };
-     
-    function resetGame(){
-        inventory={'еда':0,'вода':0,'бинты':0,'аптечка':0,'батарейки':0,'спички':0,'верёвка':0,'отмычка':0,'нож':0,'фонарик':0,'рация':0,'карта':0};
-        currentLocation="Подъезд"; sceneId="start"; ending=null; replicaCount=0;
-        metGirl=false; injured=false; park=false; metStranger=false; metSurvivors=false; helpedOldWoman=false; radioFixed=false; hasKeyCard=false; bunkerFound=false;
-        history=[]; historyIndex=-1; isViewingHistory=false; updateInvDisplay(); render();
+
+    drawLine(lastX, lastY, x, y);
+
+    lastX = x;
+    lastY = y;
+  });
+
+  // -----------------------------
+  // Рисование
+  // -----------------------------
+
+  function drawLine(x1, y1, x2, y2) {
+
+    // Свечение
+    ctx.save();
+
+    ctx.shadowBlur = glowSize;
+    ctx.shadowColor = currentColor;
+
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = brushSize;
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Яркое ядро линии
+    ctx.save();
+
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = brushSize / 2;
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // -----------------------------
+  // Запуск камеры
+  // -----------------------------
+
+  async function startCamera() {
+
+    errorBox.textContent = "";
+
+    try {
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: {
+            ideal: "user"
+          },
+          width: {
+            ideal: 1280
+          },
+          height: {
+            ideal: 720
+          }
+        },
+        audio: false
+      });
+
+      video.srcObject = stream;
+
+      await video.play();
+
+      startScreen.style.display = "none";
+
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await hands.send({
+            image: video
+          });
+        },
+        width: 1280,
+        height: 720
+      });
+
+      camera.start();
+
+    } catch (error) {
+
+      console.error(error);
+
+      errorBox.textContent =
+        "Не удалось получить доступ к камере. Проверь разрешение камеры и открой страницу через HTTPS.";
+
     }
-    document.getElementById('resetBtn').onclick=resetGame;
-    
-    // Запуск игры
-    updateInvDisplay();
-    resetGame();
+  }
+
+  startButton.addEventListener("click", startCamera);
+
 </script>
+
 </body>
 </html>
