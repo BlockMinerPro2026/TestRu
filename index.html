@@ -1,4 +1,1458 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,
+           initial-scale=1,
+           maximum-scale=1,
+           user-scalable=no,
+           viewport-fit=cover"
+>
+
+<title>Air Draw — точное рисование</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+<style>
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+/* =====================================================
+   КАМЕРА
+===================================================== */
+
+#video {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  /*
+    Зеркалим изображение камеры.
+    Координаты MediaPipe ниже тоже зеркалятся.
+  */
+  transform: scaleX(-1);
+
+  background: #000;
+}
+
+/* =====================================================
+   CANVAS
+===================================================== */
+
+#canvas {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  pointer-events: none;
+
+  /*
+    Canvas зеркалим точно так же,
+    как видео.
+  */
+  transform: scaleX(-1);
+
+  z-index: 5;
+}
+
+/* =====================================================
+   ТОЧКА ПАЛЬЦА
+===================================================== */
+
+#fingerPoint {
+  position: absolute;
+
+  width: 16px;
+  height: 16px;
+
+  margin-left: -8px;
+  margin-top: -8px;
+
+  border-radius: 50%;
+
+  border: 2px solid #fff;
+
+  pointer-events: none;
+
+  z-index: 20;
+
+  display: none;
+
+  box-shadow:
+    0 0 5px #fff,
+    0 0 15px currentColor;
+}
+
+/* =====================================================
+   UI
+===================================================== */
+
+#topBar {
+  position: absolute;
+
+  top: env(safe-area-inset-top, 10px);
+  left: 10px;
+  right: 10px;
+
+  z-index: 50;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  pointer-events: none;
+}
+
+.panel {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 7px;
+
+  border-radius: 18px;
+
+  background: rgba(0, 0, 0, .45);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  pointer-events: auto;
+}
+
+button {
+  border: 0;
+
+  width: 42px;
+  height: 42px;
+
+  border-radius: 14px;
+
+  background: rgba(255,255,255,.15);
+
+  color: white;
+
+  font-size: 18px;
+
+  touch-action: manipulation;
+}
+
+button:active {
+  transform: scale(.9);
+}
+
+.color {
+  width: 30px;
+  height: 30px;
+
+  min-width: 30px;
+
+  border-radius: 50%;
+
+  border: 2px solid rgba(255,255,255,.5);
+}
+
+.color.active {
+  border: 3px solid white;
+
+  box-shadow:
+    0 0 7px white,
+    0 0 15px white;
+}
+
+#white {
+  background: #fff;
+}
+
+#red {
+  background: #ff1744;
+}
+
+#blue {
+  background: #2979ff;
+}
+
+#green {
+  background: #00ff88;
+}
+
+#yellow {
+  background: #ffe600;
+}
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+#status {
+  position: absolute;
+
+  z-index: 50;
+
+  left: 50%;
+
+  bottom:
+    calc(
+      env(safe-area-inset-bottom, 10px)
+      + 14px
+    );
+
+  transform: translateX(-50%);
+
+  padding: 9px 16px;
+
+  border-radius: 20px;
+
+  color: white;
+
+  background: rgba(0,0,0,.45);
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  font-size: 14px;
+
+  white-space: nowrap;
+}
+
+/* =====================================================
+   START SCREEN
+===================================================== */
+
+#startScreen {
+  position: absolute;
+
+  inset: 0;
+
+  z-index: 100;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  color: white;
+
+  background: #050505;
+
+  text-align: center;
+}
+
+#startScreen h1 {
+  margin: 0 0 10px;
+
+  font-size: 34px;
+}
+
+#startScreen p {
+  max-width: 360px;
+
+  line-height: 1.5;
+
+  opacity: .7;
+}
+
+#startButton {
+  width: auto;
+  height: auto;
+
+  margin-top: 20px;
+
+  padding: 14px 25px;
+
+  border-radius: 30px;
+
+  background: white;
+
+  color: black;
+
+  font-size: 17px;
+
+  font-weight: bold;
+}
+
+#error {
+  margin-top: 15px;
+
+  max-width: 360px;
+
+  color: #ff5570;
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+  <!-- КАМЕРА -->
+  <video
+    id="video"
+    autoplay
+    muted
+    playsinline
+  ></video>
+
+  <!-- РИСОВАНИЕ -->
+  <canvas id="canvas"></canvas>
+
+  <!-- ТОЧКА НА КОНЧИКЕ ПАЛЬЦА -->
+  <div id="fingerPoint"></div>
+
+  <!-- UI -->
+  <div id="topBar">
+
+    <div class="panel">
+
+      <button
+        class="color active"
+        data-color="#ffffff"
+        id="white">
+      </button>
+
+      <button
+        class="color"
+        data-color="#ff1744"
+        id="red">
+      </button>
+
+      <button
+        class="color"
+        data-color="#2979ff"
+        id="blue">
+      </button>
+
+      <button
+        class="color"
+        data-color="#00ff88"
+        id="green">
+      </button>
+
+      <button
+        class="color"
+        data-color="#ffe600"
+        id="yellow">
+      </button>
+
+    </div>
+
+    <div class="panel">
+
+      <button id="clear">
+        🗑
+      </button>
+
+      <button id="save">
+        📸
+      </button>
+
+    </div>
+
+  </div>
+
+  <div id="status">
+    Покажи указательный палец ☝️
+  </div>
+
+
+  <!-- START -->
+
+  <div id="startScreen">
+
+    <h1>✨ Air Draw</h1>
+
+    <p>
+      Покажи указательный палец.
+      Рисунок будет следовать за его кончиком.
+    </p>
+
+    <button id="startButton">
+      Запустить камеру
+    </button>
+
+    <div id="error"></div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const video =
+  document.getElementById("video");
+
+const canvas =
+  document.getElementById("canvas");
+
+const ctx =
+  canvas.getContext("2d", {
+    alpha: true,
+    desynchronized: true
+  });
+
+const fingerPoint =
+  document.getElementById("fingerPoint");
+
+const status =
+  document.getElementById("status");
+
+const startScreen =
+  document.getElementById("startScreen");
+
+const startButton =
+  document.getElementById("startButton");
+
+const errorBox =
+  document.getElementById("error");
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let currentColor = "#ffffff";
+
+let drawing = false;
+
+let lastX = null;
+let lastY = null;
+
+let stream = null;
+
+
+/* =========================================================
+   CANVAS SIZE
+========================================================= */
+
+function resizeCanvas() {
+
+  const dpr =
+    Math.min(
+      window.devicePixelRatio || 1,
+      2
+    );
+
+  const width =
+    window.innerWidth;
+
+  const height =
+    window.innerHeight;
+
+  canvas.width =
+    Math.round(width * dpr);
+
+  canvas.height =
+    Math.round(height * dpr);
+
+  canvas.style.width =
+    width + "px";
+
+  canvas.style.height =
+    height + "px";
+
+  /*
+    Все координаты дальше будут
+    работать в CSS-пикселях.
+  */
+
+  ctx.setTransform(
+    dpr,
+    0,
+    0,
+    dpr,
+    0,
+    0
+  );
+
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+}
+
+resizeCanvas();
+
+window.addEventListener(
+  "resize",
+  resizeCanvas
+);
+
+
+/* =========================================================
+   COLORS
+========================================================= */
+
+document
+  .querySelectorAll(".color")
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        document
+          .querySelectorAll(".color")
+          .forEach(b => {
+            b.classList.remove("active");
+          });
+
+        button.classList.add("active");
+
+        currentColor =
+          button.dataset.color;
+
+        fingerPoint.style.color =
+          currentColor;
+      }
+    );
+
+  });
+
+
+/* =========================================================
+   CLEAR
+========================================================= */
+
+document
+  .getElementById("clear")
+  .addEventListener(
+    "click",
+    () => {
+
+      ctx.clearRect(
+        0,
+        0,
+        window.innerWidth,
+        window.innerHeight
+      );
+
+      drawing = false;
+
+      lastX = null;
+      lastY = null;
+
+    }
+  );
+
+
+/* =========================================================
+   ГЕОМЕТРИЯ
+========================================================= */
+
+/*
+  Расстояние между двумя landmarks.
+*/
+
+function distance(a, b) {
+
+  const dx =
+    a.x - b.x;
+
+  const dy =
+    a.y - b.y;
+
+  const dz =
+    (a.z || 0) -
+    (b.z || 0);
+
+  return Math.sqrt(
+    dx * dx +
+    dy * dy +
+    dz * dz
+  );
+}
+
+
+/*
+  Угол A-B-C.
+*/
+
+function angle(a, b, c) {
+
+  const abx =
+    a.x - b.x;
+
+  const aby =
+    a.y - b.y;
+
+  const cbx =
+    c.x - b.x;
+
+  const cby =
+    c.y - b.y;
+
+  const dot =
+    abx * cbx +
+    aby * cby;
+
+  const mag1 =
+    Math.sqrt(
+      abx * abx +
+      aby * aby
+    );
+
+  const mag2 =
+    Math.sqrt(
+      cbx * cbx +
+      cby * cby
+    );
+
+  if (
+    mag1 === 0 ||
+    mag2 === 0
+  ) {
+    return 0;
+  }
+
+  let cos =
+    dot / (mag1 * mag2);
+
+  cos =
+    Math.max(
+      -1,
+      Math.min(1, cos)
+    );
+
+  return (
+    Math.acos(cos) *
+    180 /
+    Math.PI
+  );
+}
+
+
+/* =========================================================
+   ОПРЕДЕЛЕНИЕ ПАЛЬЦА
+========================================================= */
+
+function fingerIsUp(
+  lm,
+  tip,
+  pip,
+  mcp
+) {
+
+  const tipPoint =
+    lm[tip];
+
+  const pipPoint =
+    lm[pip];
+
+  const mcpPoint =
+    lm[mcp];
+
+  /*
+    Длина пальца.
+  */
+
+  const fingerLength =
+    distance(
+      tipPoint,
+      mcpPoint
+    );
+
+  /*
+    Размер ладони.
+  */
+
+  const palm =
+    distance(
+      lm[0],
+      lm[9]
+    );
+
+  /*
+    Насколько палец прямой.
+  */
+
+  const straight =
+    angle(
+      tipPoint,
+      pipPoint,
+      mcpPoint
+    );
+
+  return (
+    fingerLength >
+      palm * 0.55
+    &&
+    straight > 145
+  );
+}
+
+
+/*
+  Определяем указательный палец.
+
+  Для рисования нам важен именно он.
+*/
+
+function indexFingerUp(lm) {
+
+  return fingerIsUp(
+    lm,
+    8,
+    7,
+    5
+  );
+}
+
+
+/* =========================================================
+   ПЕРЕВОД КООРДИНАТ
+=========================================================
+
+ВАЖНО:
+
+MediaPipe даёт:
+
+x = 0 ... 1
+y = 0 ... 1
+
+относительно оригинального кадра камеры.
+
+Но экран показывает видео через:
+
+object-fit: cover
+
+Поэтому часть изображения может быть обрезана.
+
+Здесь мы вычисляем ТОЧНО ту же геометрию,
+которую использует браузер.
+========================================================= */
+
+function getVideoPoint(
+  landmark
+) {
+
+  const videoWidth =
+    video.videoWidth;
+
+  const videoHeight =
+    video.videoHeight;
+
+  const screenWidth =
+    window.innerWidth;
+
+  const screenHeight =
+    window.innerHeight;
+
+  if (
+    !videoWidth ||
+    !videoHeight
+  ) {
+    return null;
+  }
+
+
+  /*
+    Масштаб object-fit: cover
+  */
+
+  const scale =
+    Math.max(
+      screenWidth / videoWidth,
+      screenHeight / videoHeight
+    );
+
+
+  /*
+    Размер видео после масштабирования.
+  */
+
+  const displayedWidth =
+    videoWidth * scale;
+
+  const displayedHeight =
+    videoHeight * scale;
+
+
+  /*
+    Насколько видео вышло за границы экрана.
+  */
+
+  const cropX =
+    (
+      displayedWidth -
+      screenWidth
+    ) / 2;
+
+  const cropY =
+    (
+      displayedHeight -
+      screenHeight
+    ) / 2;
+
+
+  /*
+    MediaPipe X зеркалим,
+    потому что #video зеркальный.
+  */
+
+  const mirroredX =
+    1 - landmark.x;
+
+
+  /*
+    Координата относительно
+    реального отображаемого видео.
+  */
+
+  const x =
+    mirroredX *
+    displayedWidth -
+    cropX;
+
+  const y =
+    landmark.y *
+    displayedHeight -
+    cropY;
+
+
+  return {
+    x,
+    y
+  };
+}
+
+
+/* =========================================================
+   DRAW
+========================================================= */
+
+function drawLine(
+  x1,
+  y1,
+  x2,
+  y2
+) {
+
+  /*
+    Если палец очень далеко
+    прыгнул между кадрами,
+    не рисуем огромную линию.
+  */
+
+  const dx =
+    x2 - x1;
+
+  const dy =
+    y2 - y1;
+
+  const distancePixels =
+    Math.sqrt(
+      dx * dx +
+      dy * dy
+    );
+
+  if (
+    distancePixels > 150
+  ) {
+
+    lastX = x2;
+    lastY = y2;
+
+    return;
+  }
+
+
+  /*
+    Неоновое свечение.
+  */
+
+  ctx.save();
+
+  ctx.strokeStyle =
+    currentColor;
+
+  ctx.lineWidth = 6;
+
+  ctx.shadowColor =
+    currentColor;
+
+  ctx.shadowBlur = 18;
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x1,
+    y1
+  );
+
+  ctx.lineTo(
+    x2,
+    y2
+  );
+
+  ctx.stroke();
+
+  ctx.restore();
+
+
+  /*
+    Центральная часть линии.
+  */
+
+  ctx.save();
+
+  ctx.strokeStyle =
+    currentColor;
+
+  ctx.lineWidth = 2;
+
+  ctx.shadowBlur = 0;
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x1,
+    y1
+  );
+
+  ctx.lineTo(
+    x2,
+    y2
+  );
+
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+
+/* =========================================================
+   MEDIAPIPE
+========================================================= */
+
+const hands =
+  new Hands({
+
+    locateFile: file => {
+
+      return (
+        "https://cdn.jsdelivr.net/npm/" +
+        "@mediapipe/hands/" +
+        file
+      );
+
+    }
+
+  });
+
+
+hands.setOptions({
+
+  /*
+    0 = быстрее.
+
+    Для телефона это уменьшает
+    задержку распознавания.
+  */
+
+  modelComplexity: 0,
+
+  maxNumHands: 1,
+
+  minDetectionConfidence: 0.5,
+
+  minTrackingConfidence: 0.5
+
+});
+
+
+/* =========================================================
+   RESULTS
+========================================================= */
+
+hands.onResults(
+  results => {
+
+    /*
+      Нет руки.
+    */
+
+    if (
+      !results.multiHandLandmarks ||
+      results.multiHandLandmarks.length === 0
+    ) {
+
+      status.textContent =
+        "Покажи указательный палец ☝️";
+
+      fingerPoint.style.display =
+        "none";
+
+      drawing = false;
+
+      lastX = null;
+      lastY = null;
+
+      return;
+    }
+
+
+    /*
+      Берём первую руку.
+    */
+
+    const landmarks =
+      results.multiHandLandmarks[0];
+
+
+    /*
+      Проверяем указательный палец.
+    */
+
+    const indexUp =
+      indexFingerUp(
+        landmarks
+      );
+
+
+    /*
+      Получаем кончик пальца.
+
+      Landmark 8 = tip
+    */
+
+    const point =
+      getVideoPoint(
+        landmarks[8]
+      );
+
+
+    if (!point) {
+      return;
+    }
+
+
+    /* ===================================================
+       ТОЧКА НА ПАЛЬЦЕ
+    =================================================== */
+
+    fingerPoint.style.display =
+      "block";
+
+    fingerPoint.style.left =
+      point.x + "px";
+
+    fingerPoint.style.top =
+      point.y + "px";
+
+    fingerPoint.style.color =
+      currentColor;
+
+
+    /*
+      Палец не поднят.
+    */
+
+    if (!indexUp) {
+
+      status.textContent =
+        "Подними указательный палец ☝️";
+
+      drawing = false;
+
+      lastX = null;
+      lastY = null;
+
+      return;
+    }
+
+
+    /*
+      Рисуем.
+    */
+
+    status.textContent =
+      "● Рисую";
+
+
+    /*
+      Первый кадр после начала рисования.
+
+      Ставим точку непосредственно
+      в координату пальца.
+    */
+
+    if (!drawing) {
+
+      drawing = true;
+
+      lastX = point.x;
+      lastY = point.y;
+
+      /*
+        Небольшая точка прямо
+        под кончиком пальца.
+      */
+
+      ctx.save();
+
+      ctx.fillStyle =
+        currentColor;
+
+      ctx.shadowColor =
+        currentColor;
+
+      ctx.shadowBlur = 18;
+
+      ctx.beginPath();
+
+      ctx.arc(
+        point.x,
+        point.y,
+        3,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.fill();
+
+      ctx.restore();
+
+      return;
+    }
+
+
+    /*
+      ВАЖНО:
+
+      Никакого сглаживания.
+
+      point.x / point.y —
+      непосредственно текущая
+      координата кончика пальца.
+    */
+
+    drawLine(
+      lastX,
+      lastY,
+      point.x,
+      point.y
+    );
+
+
+    lastX =
+      point.x;
+
+    lastY =
+      point.y;
+
+  }
+);
+
+
+/* =========================================================
+   CAMERA LOOP
+========================================================= */
+
+let processing =
+  false;
+
+
+async function processCameraFrame() {
+
+  /*
+    Не отправляем новый кадр,
+    пока предыдущий ещё обрабатывается.
+
+    Это предотвращает очередь кадров,
+    которая могла бы создать задержку.
+  */
+
+  if (
+    !processing &&
+    video.readyState >= 2
+  ) {
+
+    processing = true;
+
+    try {
+
+      await hands.send({
+        image: video
+      });
+
+    } catch (error) {
+
+      console.error(
+        "MediaPipe:",
+        error
+      );
+
+    }
+
+    processing = false;
+  }
+
+
+  requestAnimationFrame(
+    processCameraFrame
+  );
+}
+
+
+/* =========================================================
+   START CAMERA
+========================================================= */
+
+async function startCamera() {
+
+  errorBox.textContent = "";
+
+  try {
+
+    stream =
+      await navigator.mediaDevices
+        .getUserMedia({
+
+          video: {
+
+            /*
+              Передняя камера.
+            */
+
+            facingMode: {
+              ideal: "user"
+            },
+
+            /*
+              Высокое разрешение.
+            */
+
+            width: {
+              ideal: 1280
+            },
+
+            height: {
+              ideal: 720
+            },
+
+            /*
+              Просим 60 FPS,
+              если телефон поддерживает.
+            */
+
+            frameRate: {
+              ideal: 60,
+              max: 60
+            }
+
+          },
+
+          audio: false
+
+        });
+
+
+    video.srcObject =
+      stream;
+
+
+    /*
+      Ждём реальные размеры
+      видеопотока.
+    */
+
+    await new Promise(
+      resolve => {
+
+        if (
+          video.readyState >= 1
+        ) {
+
+          resolve();
+
+        } else {
+
+          video.onloadedmetadata =
+            resolve;
+
+        }
+
+      }
+    );
+
+
+    await video.play();
+
+
+    /*
+      Теперь можно убрать
+      стартовый экран.
+    */
+
+    startScreen.style.display =
+      "none";
+
+
+    /*
+      Запускаем обработку кадров.
+    */
+
+    requestAnimationFrame(
+      processCameraFrame
+    );
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    errorBox.textContent =
+      "Не удалось открыть камеру. " +
+      "Разреши доступ к камере и используй HTTPS.";
+
+  }
+
+}
+
+
+/* =========================================================
+   SAVE
+========================================================= */
+
+document
+  .getElementById("save")
+  .addEventListener(
+    "click",
+    () => {
+
+      if (
+        !video.videoWidth ||
+        !video.videoHeight
+      ) {
+        return;
+      }
+
+
+      const result =
+        document.createElement(
+          "canvas"
+        );
+
+
+      result.width =
+        video.videoWidth;
+
+      result.height =
+        video.videoHeight;
+
+
+      const rctx =
+        result.getContext("2d");
+
+
+      /*
+        Рисуем зеркальное видео.
+      */
+
+      rctx.save();
+
+      rctx.translate(
+        result.width,
+        0
+      );
+
+      rctx.scale(
+        -1,
+        1
+      );
+
+      rctx.drawImage(
+        video,
+        0,
+        0,
+        result.width,
+        result.height
+      );
+
+      rctx.restore();
+
+
+      /*
+        Накладываем рисунок.
+      */
+
+      rctx.drawImage(
+        canvas,
+        0,
+        0,
+        result.width,
+        result.height
+      );
+
+
+      const link =
+        document.createElement(
+          "a"
+        );
+
+      link.download =
+        "air-drawing.png";
+
+      link.href =
+        result.toDataURL(
+          "image/png"
+        );
+
+      link.click();
+
+    }
+  );
+
+
+/* =========================================================
+   START BUTTON
+========================================================= */
+
+startButton.addEventListener(
+  "click",
+  startCamera
+);
+
+</script>
+
+</body>
+</html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
