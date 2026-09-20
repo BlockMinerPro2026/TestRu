@@ -1,565 +1,498 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Godot → APK</title>
 
-    <title>Godot → APK</title>
+<style>
+* {
+  box-sizing: border-box;
+}
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: #101522;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
 
-        html,
-        body {
-            margin: 0;
-            min-height: 100%;
-            font-family: Arial, sans-serif;
-            background:
-                radial-gradient(circle at top, #263b63 0%, #101522 45%, #080b12 100%);
-            color: white;
-        }
+.card {
+  width: 100%;
+  max-width: 520px;
+  background: #192235;
+  border-radius: 24px;
+  padding: 25px;
+  box-shadow: 0 15px 50px #0008;
+}
 
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+h1 {
+  text-align: center;
+  margin-top: 0;
+}
 
-        .container {
-            width: 100%;
-            max-width: 620px;
-        }
+input,
+button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 10px;
+  border-radius: 12px;
+  border: 0;
+  font-size: 16px;
+}
 
-        .card {
-            background: rgba(20, 27, 42, 0.92);
-            border: 1px solid rgba(255,255,255,.12);
-            border-radius: 28px;
-            padding: 30px;
-            box-shadow: 0 25px 80px rgba(0,0,0,.45);
-        }
+input {
+  background: #27334a;
+  color: white;
+}
 
-        .logo {
-            width: 72px;
-            height: 72px;
-            border-radius: 20px;
-            background: linear-gradient(135deg, #4f8cff, #7c4dff);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 36px;
-            margin-bottom: 20px;
-        }
+button {
+  background: #35c759;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-        h1 {
-            margin: 0 0 10px;
-            font-size: 32px;
-        }
+button:disabled {
+  opacity: .5;
+}
 
-        .description {
-            color: #aeb9cc;
-            line-height: 1.6;
-            margin-bottom: 25px;
-        }
+#status {
+  margin-top: 20px;
+  padding: 15px;
+  background: #0d1320;
+  border-radius: 12px;
+  white-space: pre-wrap;
+}
 
-        .upload {
-            border: 2px dashed #52617b;
-            border-radius: 20px;
-            padding: 35px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: .2s;
-            display: block;
-        }
-
-        .upload:hover {
-            border-color: #669cff;
-            background: rgba(80,130,255,.07);
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-
-        .upload-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 7px;
-        }
-
-        .upload-info {
-            color: #8996ad;
-            font-size: 14px;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .file-name {
-            margin-top: 15px;
-            padding: 13px;
-            background: rgba(255,255,255,.05);
-            border-radius: 12px;
-            color: #cbd5e1;
-            display: none;
-            word-break: break-word;
-        }
-
-        button {
-            width: 100%;
-            margin-top: 18px;
-            padding: 17px;
-            border: 0;
-            border-radius: 15px;
-            background: linear-gradient(135deg, #4f8cff, #694cff);
-            color: white;
-            font-size: 17px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: .2s;
-        }
-
-        button:hover:not(:disabled) {
-            transform: translateY(-1px);
-            filter: brightness(1.1);
-        }
-
-        button:disabled {
-            opacity: .4;
-            cursor: not-allowed;
-        }
-
-        .progress {
-            display: none;
-            margin-top: 22px;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background: #293247;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #4f8cff, #8c5cff);
-            transition: width .4s;
-        }
-
-        .status {
-            text-align: center;
-            margin-top: 12px;
-            color: #b9c4d8;
-            font-size: 14px;
-        }
-
-        .steps {
-            margin-top: 28px;
-            display: grid;
-            gap: 10px;
-        }
-
-        .step {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: #aeb9cc;
-            font-size: 14px;
-        }
-
-        .step-number {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: #28344b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-
-        .footer {
-            margin-top: 22px;
-            text-align: center;
-            color: #69758a;
-            font-size: 12px;
-        }
-
-        .success {
-            color: #67e8a5;
-        }
-
-        .error {
-            color: #ff7d7d;
-        }
-
-        @media (max-width: 500px) {
-            body {
-                padding: 12px;
-            }
-
-            .card {
-                padding: 22px;
-                border-radius: 22px;
-            }
-
-            h1 {
-                font-size: 27px;
-            }
-
-            .logo {
-                width: 60px;
-                height: 60px;
-                font-size: 30px;
-            }
-        }
-    </style>
+small {
+  color: #aab4c7;
+}
+</style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="card">
 
-    <div class="card">
+<h1>🎮 Godot → APK</h1>
 
-        <div class="logo">
-            🎮
-        </div>
+<p>
+Загрузи ZIP Godot-проекта — GitHub Actions соберёт Android APK.
+</p>
 
-        <h1>Godot → APK</h1>
+<input id="owner" placeholder="GitHub пользователь"
+       value="nerpro2026">
 
-        <div class="description">
-            Загрузи ZIP-файл своего проекта Godot,
-            и сервер автоматически соберёт из него
-            приложение для Android.
-        </div>
+<input id="repo" placeholder="Название репозитория"
+       value="nerpro2026.github.io">
 
-        <label class="upload" for="projectFile">
+<input id="token"
+       type="password"
+       placeholder="GitHub Fine-grained Token">
 
-            <div class="upload-icon">
-                📦
-            </div>
+<input id="project"
+       type="file"
+       accept=".zip">
 
-            <div class="upload-title">
-                Выбрать ZIP проекта
-            </div>
+<button id="build">
+🚀 Собрать APK
+</button>
 
-            <div class="upload-info">
-                Нажми здесь и выбери файл .zip
-            </div>
-
-            <input
-                id="projectFile"
-                type="file"
-                accept=".zip"
-            >
-
-        </label>
-
-        <div
-            id="fileName"
-            class="file-name"
-        ></div>
-
-        <button
-            id="buildButton"
-            disabled
-        >
-            🚀 Собрать APK
-        </button>
-
-        <div
-            id="progress"
-            class="progress"
-        >
-            <div class="progress-bar">
-                <div
-                    id="progressFill"
-                    class="progress-fill"
-                ></div>
-            </div>
-
-            <div
-                id="status"
-                class="status"
-            >
-                Подготовка...
-            </div>
-        </div>
-
-        <div class="steps">
-
-            <div class="step">
-                <div class="step-number">1</div>
-                Загрузить ZIP Godot-проекта
-            </div>
-
-            <div class="step">
-                <div class="step-number">2</div>
-                Сервер распакует проект
-            </div>
-
-            <div class="step">
-                <div class="step-number">3</div>
-                Godot соберёт Android APK
-            </div>
-
-            <div class="step">
-                <div class="step-number">4</div>
-                APK автоматически скачается
-            </div>
-
-        </div>
-
-        <div class="footer">
-            Godot 4 • Android APK Builder
-        </div>
-
-    </div>
+<div id="status">
+Готово к сборке.
+</div>
 
 </div>
 
-
 <script>
 
-const fileInput =
-    document.getElementById("projectFile");
+const API = "https://api.github.com";
 
-const fileName =
-    document.getElementById("fileName");
+const statusBox = document.getElementById("status");
+const buildButton = document.getElementById("build");
 
-const buildButton =
-    document.getElementById("buildButton");
-
-const progress =
-    document.getElementById("progress");
-
-const progressFill =
-    document.getElementById("progressFill");
-
-const status =
-    document.getElementById("status");
-
-
-let selectedFile = null;
-
-
-/*
-    Выбор ZIP
-*/
-
-fileInput.addEventListener(
-    "change",
-    function () {
-
-        const file = this.files[0];
-
-        if (!file) {
-            selectedFile = null;
-            buildButton.disabled = true;
-            fileName.style.display = "none";
-            return;
-        }
-
-        if (!file.name.toLowerCase().endsWith(".zip")) {
-
-            alert("Можно загружать только ZIP-файлы.");
-
-            this.value = "";
-            selectedFile = null;
-            buildButton.disabled = true;
-
-            return;
-        }
-
-        selectedFile = file;
-
-        fileName.style.display = "block";
-
-        fileName.textContent =
-            "📦 " +
-            file.name +
-            " • " +
-            formatSize(file.size);
-
-        buildButton.disabled = false;
-    }
-);
-
-
-/*
-    Кнопка сборки
-*/
-
-buildButton.addEventListener(
-    "click",
-    async function () {
-
-        if (!selectedFile) {
-            return;
-        }
-
-        buildButton.disabled = true;
-
-        progress.style.display = "block";
-
-        progressFill.style.width = "10%";
-
-        status.textContent =
-            "Загружаем проект...";
-
-        status.className = "status";
-
-
-        const formData = new FormData();
-
-        formData.append(
-            "project",
-            selectedFile
-        );
-
-
-        try {
-
-            progressFill.style.width = "30%";
-
-            status.textContent =
-                "Распаковываем проект...";
-
-
-            const response =
-                await fetch(
-                    "/api/build",
-                    {
-                        method: "POST",
-                        body: formData
-                    }
-                );
-
-
-            progressFill.style.width = "60%";
-
-            status.textContent =
-                "Godot собирает APK...";
-
-
-            if (!response.ok) {
-
-                let errorMessage =
-                    "Неизвестная ошибка.";
-
-                try {
-
-                    const error =
-                        await response.json();
-
-                    errorMessage =
-                        error.error ||
-                        errorMessage;
-
-                } catch (_) {}
-
-                throw new Error(
-                    errorMessage
-                );
-            }
-
-
-            progressFill.style.width = "90%";
-
-            status.textContent =
-                "APK готовится к скачиванию...";
-
-
-            const blob =
-                await response.blob();
-
-
-            const url =
-                URL.createObjectURL(blob);
-
-
-            const link =
-                document.createElement("a");
-
-            link.href = url;
-
-            link.download =
-                "farm.apk";
-
-            document.body.appendChild(link);
-
-            link.click();
-
-            link.remove();
-
-            URL.revokeObjectURL(url);
-
-
-            progressFill.style.width = "100%";
-
-            status.textContent =
-                "✅ APK готов! Загрузка началась.";
-
-            status.className =
-                "status success";
-
-
-        } catch (error) {
-
-            progressFill.style.width = "0%";
-
-            status.textContent =
-                "❌ " + error.message;
-
-            status.className =
-                "status error";
-
-        } finally {
-
-            buildButton.disabled = false;
-
-        }
-
-    }
-);
-
-
-/*
-    Размер файла
-*/
-
-function formatSize(bytes) {
-
-    if (bytes < 1024) {
-        return bytes + " B";
-    }
-
-    if (bytes < 1024 * 1024) {
-        return (
-            (bytes / 1024).toFixed(1) +
-            " KB"
-        );
-    }
-
-    return (
-        (bytes / 1024 / 1024).toFixed(1) +
-        " MB"
-    );
+function status(text) {
+  statusBox.textContent = text;
 }
+
+function headers(token) {
+  return {
+    "Accept": "application/vnd.github+json",
+    "Authorization": "Bearer " + token,
+    "X-GitHub-Api-Version": "2026-03-10"
+  };
+}
+
+function base64(bytes) {
+
+  let binary = "";
+
+  const chunk = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(i, i + chunk)
+    );
+  }
+
+  return btoa(binary);
+}
+
+async function github(url, options = {}) {
+
+  const response = await fetch(API + url, options);
+
+  if (!response.ok) {
+    let message = "";
+
+    try {
+      const data = await response.json();
+      message = data.message || "";
+    } catch {}
+
+    throw new Error(
+      response.status + " " + message
+    );
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.json();
+}
+
+async function getRepo(owner, repo, token) {
+
+  return github(
+    `/repos/${owner}/${repo}`,
+    {
+      headers: headers(token)
+    }
+  );
+}
+
+async function uploadZip(
+  owner,
+  repo,
+  branch,
+  file,
+  token
+) {
+
+  status("📦 Загружаю ZIP в GitHub...");
+
+  const bytes = new Uint8Array(
+    await file.arrayBuffer()
+  );
+
+  const content = base64(bytes);
+
+  const path = ".github/apk-input/project.zip";
+
+  let sha = null;
+
+  const existing = await fetch(
+    `${API}/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`,
+    {
+      headers: headers(token)
+    }
+  );
+
+  if (existing.ok) {
+    const data = await existing.json();
+    sha = data.sha;
+  }
+
+  const body = {
+    message: "Upload Godot project for APK build",
+    content,
+    branch
+  };
+
+  if (sha) {
+    body.sha = sha;
+  }
+
+  await github(
+    `/repos/${owner}/${repo}/contents/${path}`,
+    {
+      method: "PUT",
+      headers: {
+        ...headers(token),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    }
+  );
+}
+
+async function startBuild(
+  owner,
+  repo,
+  token
+) {
+
+  status("⚙️ Запускаю GitHub Actions...");
+
+  await github(
+    `/repos/${owner}/${repo}/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        ...headers(token),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        event_type: "build-apk"
+      })
+    }
+  );
+}
+
+async function waitBuild(
+  owner,
+  repo,
+  token
+) {
+
+  status("🔨 Сборка APK началась...\n\nЭто может занять несколько минут.");
+
+  for (;;) {
+
+    await new Promise(
+      resolve => setTimeout(resolve, 5000)
+    );
+
+    const data = await github(
+      `/repos/${owner}/${repo}/actions/runs?per_page=20`,
+      {
+        headers: headers(token)
+      }
+    );
+
+    const workflow = data.workflow_runs.find(
+      run =>
+        run.name === "Build Android APK" &&
+        (
+          run.status === "queued" ||
+          run.status === "in_progress" ||
+          run.status === "completed"
+        )
+    );
+
+    if (!workflow) {
+      continue;
+    }
+
+    if (
+      workflow.status === "queued" ||
+      workflow.status === "in_progress"
+    ) {
+
+      status(
+        "🔨 Сборка APK...\n\n" +
+        "Статус: " +
+        workflow.status
+      );
+
+      continue;
+    }
+
+    if (workflow.conclusion !== "success") {
+
+      throw new Error(
+        "GitHub Actions завершился: " +
+        workflow.conclusion +
+        "\n\nОткрой Actions в репозитории и посмотри ошибку."
+      );
+    }
+
+    return workflow.id;
+  }
+}
+
+async function getArtifact(
+  owner,
+  repo,
+  runId,
+  token
+) {
+
+  status("📦 Получаю готовый APK...");
+
+  const data = await github(
+    `/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`,
+    {
+      headers: headers(token)
+    }
+  );
+
+  const artifact = data.artifacts.find(
+    a => a.name === "android-apk"
+  );
+
+  if (!artifact) {
+    throw new Error(
+      "APK-артефакт не найден."
+    );
+  }
+
+  return artifact;
+}
+
+async function downloadArtifact(
+  owner,
+  repo,
+  artifact,
+  token
+) {
+
+  const response = await fetch(
+    `${API}/repos/${owner}/${repo}/actions/artifacts/${artifact.id}/zip`,
+    {
+      headers: headers(token)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Не удалось скачать APK."
+    );
+  }
+
+  const blob = await response.blob();
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "farm-apk.zip";
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  a.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+buildButton.onclick = async () => {
+
+  buildButton.disabled = true;
+
+  try {
+
+    const owner =
+      document.getElementById("owner").value.trim();
+
+    const repo =
+      document.getElementById("repo").value.trim();
+
+    const token =
+      document.getElementById("token").value.trim();
+
+    const file =
+      document.getElementById("project").files[0];
+
+    if (!owner || !repo) {
+      throw new Error(
+        "Укажи GitHub пользователя и репозиторий."
+      );
+    }
+
+    if (!token) {
+      throw new Error(
+        "Введи GitHub Token."
+      );
+    }
+
+    if (!file) {
+      throw new Error(
+        "Выбери ZIP Godot-проекта."
+      );
+    }
+
+    if (!file.name.toLowerCase().endsWith(".zip")) {
+      throw new Error(
+        "Нужен ZIP-файл."
+      );
+    }
+
+    status("🔎 Проверяю репозиторий...");
+
+    const repository =
+      await getRepo(owner, repo, token);
+
+    const branch =
+      repository.default_branch;
+
+    await uploadZip(
+      owner,
+      repo,
+      branch,
+      file,
+      token
+    );
+
+    await startBuild(
+      owner,
+      repo,
+      token
+    );
+
+    const runId =
+      await waitBuild(
+        owner,
+        repo,
+        token
+      );
+
+    const artifact =
+      await getArtifact(
+        owner,
+        repo,
+        runId,
+        token
+      );
+
+    await downloadArtifact(
+      owner,
+      repo,
+      artifact,
+      token
+    );
+
+    status(
+      "✅ APK готов!\n\n" +
+      "Скачан файл farm-apk.zip.\n" +
+      "Внутри находится farm.apk."
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    status(
+      "❌ Ошибка:\n\n" +
+      error.message
+    );
+
+  } finally {
+
+    buildButton.disabled = false;
+  }
+};
 
 </script>
 
 </body>
-    </html>
+</html>
