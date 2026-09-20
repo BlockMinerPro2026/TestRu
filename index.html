@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Godot → APK</title>
 
 <style>
@@ -13,9 +14,10 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: Arial, sans-serif;
-  background: #101522;
+  background:
+    radial-gradient(circle at top, #273b68, #0b1020 65%);
   color: white;
+  font-family: Arial, sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -25,53 +27,82 @@ body {
 .card {
   width: 100%;
   max-width: 520px;
-  background: #192235;
-  border-radius: 24px;
-  padding: 25px;
-  box-shadow: 0 15px 50px #0008;
+  padding: 28px;
+  border-radius: 25px;
+  background: rgba(24,31,52,.96);
+  box-shadow: 0 20px 60px #0008;
 }
 
 h1 {
   text-align: center;
-  margin-top: 0;
+  margin: 0 0 10px;
 }
 
-input,
+.description {
+  text-align: center;
+  color: #aeb8cf;
+  line-height: 1.5;
+}
+
+.file {
+  margin-top: 25px;
+  padding: 25px;
+  border: 2px dashed #4c6fff;
+  border-radius: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.file:hover {
+  background: #ffffff08;
+}
+
+input[type=file] {
+  display: none;
+}
+
+#fileName {
+  margin-top: 12px;
+  color: #65e58a;
+  word-break: break-word;
+}
+
 button {
   width: 100%;
-  padding: 15px;
-  margin-top: 10px;
-  border-radius: 12px;
   border: 0;
-  font-size: 16px;
-}
-
-input {
-  background: #27334a;
-  color: white;
-}
-
-button {
-  background: #35c759;
-  color: white;
+  border-radius: 15px;
+  padding: 17px;
+  margin-top: 20px;
+  font-size: 17px;
   font-weight: bold;
+  color: white;
+  background: linear-gradient(135deg,#36d66b,#159447);
   cursor: pointer;
 }
 
 button:disabled {
-  opacity: .5;
+  opacity: .45;
 }
 
-#status {
+.status {
   margin-top: 20px;
-  padding: 15px;
-  background: #0d1320;
-  border-radius: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #0b1120;
   white-space: pre-wrap;
+  text-align: center;
 }
 
-small {
-  color: #aab4c7;
+.download {
+  display: none;
+  text-decoration: none;
+  color: white;
+  background: #3278ff;
+  padding: 16px;
+  margin-top: 15px;
+  border-radius: 14px;
+  text-align: center;
+  font-weight: bold;
 }
 </style>
 </head>
@@ -82,400 +113,156 @@ small {
 
 <h1>🎮 Godot → APK</h1>
 
-<p>
-Загрузи ZIP Godot-проекта — GitHub Actions соберёт Android APK.
-</p>
+<div class="description">
+Загрузи ZIP своего Godot-проекта.<br>
+Сайт автоматически запустит сборку Android APK.
+</div>
 
-<input id="owner" placeholder="GitHub пользователь"
-       value="nerpro2026">
+<label class="file">
 
-<input id="repo" placeholder="Название репозитория"
-       value="nerpro2026.github.io">
+📦 Выбрать ZIP проекта
 
-<input id="token"
-       type="password"
-       placeholder="GitHub Fine-grained Token">
+<input
+  id="project"
+  type="file"
+  accept=".zip">
 
-<input id="project"
-       type="file"
-       accept=".zip">
+<div id="fileName">
+ZIP не выбран
+</div>
+
+</label>
 
 <button id="build">
-🚀 Собрать APK
+🚀 СОБРАТЬ APK
 </button>
 
-<div id="status">
+<div id="status" class="status">
 Готово к сборке.
 </div>
+
+<a
+  id="download"
+  class="download">
+📥 Скачать APK
+</a>
 
 </div>
 
 <script>
 
-const API = "https://api.github.com";
+const API = "/api";
 
-const statusBox = document.getElementById("status");
-const buildButton = document.getElementById("build");
+const fileInput =
+  document.getElementById("project");
+
+const fileName =
+  document.getElementById("fileName");
+
+const buildButton =
+  document.getElementById("build");
+
+const statusBox =
+  document.getElementById("status");
+
+const download =
+  document.getElementById("download");
+
+fileInput.addEventListener(
+  "change",
+  () => {
+
+    if (!fileInput.files.length) {
+      fileName.textContent =
+        "ZIP не выбран";
+
+      return;
+    }
+
+    fileName.textContent =
+      fileInput.files[0].name;
+  }
+);
 
 function status(text) {
   statusBox.textContent = text;
 }
 
-function headers(token) {
-  return {
-    "Accept": "application/vnd.github+json",
-    "Authorization": "Bearer " + token,
-    "X-GitHub-Api-Version": "2026-03-10"
-  };
-}
-
-function base64(bytes) {
-
-  let binary = "";
-
-  const chunk = 0x8000;
-
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(
-      ...bytes.subarray(i, i + chunk)
-    );
-  }
-
-  return btoa(binary);
-}
-
-async function github(url, options = {}) {
-
-  const response = await fetch(API + url, options);
-
-  if (!response.ok) {
-    let message = "";
-
-    try {
-      const data = await response.json();
-      message = data.message || "";
-    } catch {}
-
-    throw new Error(
-      response.status + " " + message
-    );
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  return response.json();
-}
-
-async function getRepo(owner, repo, token) {
-
-  return github(
-    `/repos/${owner}/${repo}`,
-    {
-      headers: headers(token)
-    }
-  );
-}
-
-async function uploadZip(
-  owner,
-  repo,
-  branch,
-  file,
-  token
-) {
-
-  status("📦 Загружаю ZIP в GitHub...");
-
-  const bytes = new Uint8Array(
-    await file.arrayBuffer()
-  );
-
-  const content = base64(bytes);
-
-  const path = ".github/apk-input/project.zip";
-
-  let sha = null;
-
-  const existing = await fetch(
-    `${API}/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`,
-    {
-      headers: headers(token)
-    }
-  );
-
-  if (existing.ok) {
-    const data = await existing.json();
-    sha = data.sha;
-  }
-
-  const body = {
-    message: "Upload Godot project for APK build",
-    content,
-    branch
-  };
-
-  if (sha) {
-    body.sha = sha;
-  }
-
-  await github(
-    `/repos/${owner}/${repo}/contents/${path}`,
-    {
-      method: "PUT",
-      headers: {
-        ...headers(token),
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }
-  );
-}
-
-async function startBuild(
-  owner,
-  repo,
-  token
-) {
-
-  status("⚙️ Запускаю GitHub Actions...");
-
-  await github(
-    `/repos/${owner}/${repo}/dispatches`,
-    {
-      method: "POST",
-      headers: {
-        ...headers(token),
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        event_type: "build-apk"
-      })
-    }
-  );
-}
-
-async function waitBuild(
-  owner,
-  repo,
-  token
-) {
-
-  status("🔨 Сборка APK началась...\n\nЭто может занять несколько минут.");
-
-  for (;;) {
-
-    await new Promise(
-      resolve => setTimeout(resolve, 5000)
-    );
-
-    const data = await github(
-      `/repos/${owner}/${repo}/actions/runs?per_page=20`,
-      {
-        headers: headers(token)
-      }
-    );
-
-    const workflow = data.workflow_runs.find(
-      run =>
-        run.name === "Build Android APK" &&
-        (
-          run.status === "queued" ||
-          run.status === "in_progress" ||
-          run.status === "completed"
-        )
-    );
-
-    if (!workflow) {
-      continue;
-    }
-
-    if (
-      workflow.status === "queued" ||
-      workflow.status === "in_progress"
-    ) {
-
-      status(
-        "🔨 Сборка APK...\n\n" +
-        "Статус: " +
-        workflow.status
-      );
-
-      continue;
-    }
-
-    if (workflow.conclusion !== "success") {
-
-      throw new Error(
-        "GitHub Actions завершился: " +
-        workflow.conclusion +
-        "\n\nОткрой Actions в репозитории и посмотри ошибку."
-      );
-    }
-
-    return workflow.id;
-  }
-}
-
-async function getArtifact(
-  owner,
-  repo,
-  runId,
-  token
-) {
-
-  status("📦 Получаю готовый APK...");
-
-  const data = await github(
-    `/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`,
-    {
-      headers: headers(token)
-    }
-  );
-
-  const artifact = data.artifacts.find(
-    a => a.name === "android-apk"
-  );
-
-  if (!artifact) {
-    throw new Error(
-      "APK-артефакт не найден."
-    );
-  }
-
-  return artifact;
-}
-
-async function downloadArtifact(
-  owner,
-  repo,
-  artifact,
-  token
-) {
-
-  const response = await fetch(
-    `${API}/repos/${owner}/${repo}/actions/artifacts/${artifact.id}/zip`,
-    {
-      headers: headers(token)
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      "Не удалось скачать APK."
-    );
-  }
-
-  const blob = await response.blob();
-
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-
-  a.href = url;
-  a.download = "farm-apk.zip";
-
-  document.body.appendChild(a);
-
-  a.click();
-
-  a.remove();
-
-  URL.revokeObjectURL(url);
-}
-
 buildButton.onclick = async () => {
+
+  download.style.display = "none";
+
+  const file =
+    fileInput.files[0];
+
+  if (!file) {
+
+    status(
+      "❌ Сначала выбери ZIP Godot-проекта."
+    );
+
+    return;
+  }
+
+  if (
+    !file.name
+      .toLowerCase()
+      .endsWith(".zip")
+  ) {
+
+    status(
+      "❌ Можно загружать только ZIP."
+    );
+
+    return;
+  }
 
   buildButton.disabled = true;
 
+  status(
+    "📤 Загружаю проект...\n\n" +
+    "Пожалуйста, подожди."
+  );
+
   try {
 
-    const owner =
-      document.getElementById("owner").value.trim();
+    const form =
+      new FormData();
 
-    const repo =
-      document.getElementById("repo").value.trim();
-
-    const token =
-      document.getElementById("token").value.trim();
-
-    const file =
-      document.getElementById("project").files[0];
-
-    if (!owner || !repo) {
-      throw new Error(
-        "Укажи GitHub пользователя и репозиторий."
-      );
-    }
-
-    if (!token) {
-      throw new Error(
-        "Введи GitHub Token."
-      );
-    }
-
-    if (!file) {
-      throw new Error(
-        "Выбери ZIP Godot-проекта."
-      );
-    }
-
-    if (!file.name.toLowerCase().endsWith(".zip")) {
-      throw new Error(
-        "Нужен ZIP-файл."
-      );
-    }
-
-    status("🔎 Проверяю репозиторий...");
-
-    const repository =
-      await getRepo(owner, repo, token);
-
-    const branch =
-      repository.default_branch;
-
-    await uploadZip(
-      owner,
-      repo,
-      branch,
-      file,
-      token
+    form.append(
+      "project",
+      file
     );
 
-    await startBuild(
-      owner,
-      repo,
-      token
-    );
-
-    const runId =
-      await waitBuild(
-        owner,
-        repo,
-        token
+    const response =
+      await fetch(
+        API + "/build",
+        {
+          method: "POST",
+          body: form
+        }
       );
 
-    const artifact =
-      await getArtifact(
-        owner,
-        repo,
-        runId,
-        token
-      );
+    const data =
+      await response.json();
 
-    await downloadArtifact(
-      owner,
-      repo,
-      artifact,
-      token
-    );
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        "Ошибка сервера"
+      );
+    }
+
+    const jobId =
+      data.jobId;
 
     status(
-      "✅ APK готов!\n\n" +
-      "Скачан файл farm-apk.zip.\n" +
-      "Внутри находится farm.apk."
+      "🔨 Сборка APK запущена...\n\n" +
+      "ID: " + jobId
     );
+
+    await waitForBuild(jobId);
 
   } catch (error) {
 
@@ -491,6 +278,78 @@ buildButton.onclick = async () => {
     buildButton.disabled = false;
   }
 };
+
+async function waitForBuild(jobId) {
+
+  while (true) {
+
+    await new Promise(
+      resolve =>
+        setTimeout(resolve, 5000)
+    );
+
+    const response =
+      await fetch(
+        API +
+        "/build/" +
+        encodeURIComponent(jobId)
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        "Ошибка проверки сборки"
+      );
+    }
+
+    if (data.status === "queued") {
+
+      status(
+        "⏳ APK ожидает запуска..."
+      );
+
+      continue;
+    }
+
+    if (data.status === "building") {
+
+      status(
+        "🔨 Godot собирает APK...\n\n" +
+        "Обычно это занимает несколько минут."
+      );
+
+      continue;
+    }
+
+    if (data.status === "success") {
+
+      status(
+        "✅ APK готов!\n\n" +
+        "Нажми кнопку ниже."
+      );
+
+      download.href =
+        data.download;
+
+      download.style.display =
+        "block";
+
+      return;
+    }
+
+    if (data.status === "failed") {
+
+      throw new Error(
+        data.error ||
+        "GitHub Actions завершился с ошибкой."
+      );
+    }
+  }
+}
 
 </script>
 
