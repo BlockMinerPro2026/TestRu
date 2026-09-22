@@ -3,115 +3,117 @@
 <head>
 <meta charset="UTF-8">
 
-<meta
-  name="viewport"
-  content="width=device-width,
-  initial-scale=1,
-  maximum-scale=1,
-  user-scalable=no"
->
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1,
+               maximum-scale=1,
+               user-scalable=no,
+               viewport-fit=cover">
 
-<title>Emoji Camera</title>
+<title>Face Filter</title>
 
 <style>
 * {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #000;
-  font-family: Arial, sans-serif;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: Arial, sans-serif;
 }
 
-#camera {
-  position: fixed;
-  inset: 0;
+#video {
+    position: fixed;
+    inset: 0;
 
-  width: 100%;
-  height: 100%;
+    width: 100%;
+    height: 100%;
 
-  object-fit: cover;
+    object-fit: cover;
 
-  transform: scaleX(-1);
-
-  background: #111;
+    background: #111;
 }
 
-#canvas {
-  position: fixed;
-  inset: 0;
+#overlay {
+    position: fixed;
+    inset: 0;
 
-  width: 100%;
-  height: 100%;
+    width: 100%;
+    height: 100%;
 
-  pointer-events: none;
+    touch-action: none;
 }
 
-.ui {
-  position: fixed;
+#message {
+    position: fixed;
 
-  left: 0;
-  right: 0;
-  bottom: 0;
+    top: calc(15px + env(safe-area-inset-top));
+    left: 50%;
 
-  padding:
-    20px
-    20px
-    calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
 
-  display: flex;
-  justify-content: center;
+    z-index: 10;
 
-  pointer-events: none;
+    padding: 9px 15px;
+
+    border-radius: 30px;
+
+    color: white;
+    background: rgba(0,0,0,.55);
+
+    font-size: 13px;
+
+    white-space: nowrap;
+
+    backdrop-filter: blur(10px);
+}
+
+.controls {
+    position: fixed;
+
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    z-index: 20;
+
+    padding:
+        15px
+        15px
+        calc(15px + env(safe-area-inset-bottom));
+
+    display: flex;
+    justify-content: center;
+    gap: 10px;
 }
 
 button {
-  pointer-events: auto;
+    border: 0;
 
-  border: none;
+    border-radius: 999px;
 
-  padding: 15px 24px;
+    padding: 14px 20px;
 
-  border-radius: 999px;
+    background: white;
+    color: black;
 
-  background: rgba(255,255,255,.9);
-
-  color: #111;
-
-  font-size: 16px;
-  font-weight: bold;
-
-  box-shadow:
-    0 8px 30px rgba(0,0,0,.35);
+    font-size: 15px;
+    font-weight: 700;
 }
 
-#status {
-  position: fixed;
+button:active {
+    transform: scale(.96);
+}
 
-  top: calc(15px + env(safe-area-inset-top));
-  left: 50%;
-
-  transform: translateX(-50%);
-
-  padding: 8px 14px;
-
-  border-radius: 999px;
-
-  background: rgba(0,0,0,.45);
-
-  color: white;
-
-  font-size: 13px;
-
-  backdrop-filter: blur(10px);
-
-  white-space: nowrap;
+#start {
+    background: #8b35ff;
+    color: white;
 }
 </style>
 </head>
@@ -119,55 +121,113 @@ button {
 <body>
 
 <video
-  id="camera"
-  autoplay
-  muted
-  playsinline
-></video>
+    id="video"
+    autoplay
+    muted
+    playsinline>
+</video>
 
-<canvas id="canvas"></canvas>
+<canvas id="overlay"></canvas>
 
-<div id="status">
-  Запускаем камеру...
+<div id="message">
+    Нажми «Запустить камеру»
 </div>
 
-<div class="ui">
-  <button id="switch">
-    🔄 Перевернуть камеру
-  </button>
-</div>
+<div class="controls">
 
+    <button id="start">
+        📷 Запустить камеру
+    </button>
+
+    <button id="flip">
+        🔄
+    </button>
+
+</div>
 
 <script>
 
 const video =
-  document.getElementById("camera");
+    document.getElementById("video");
 
 const canvas =
-  document.getElementById("canvas");
+    document.getElementById("overlay");
 
 const ctx =
-  canvas.getContext("2d");
+    canvas.getContext("2d");
 
-const status =
-  document.getElementById("status");
+const message =
+    document.getElementById("message");
 
-const switchButton =
-  document.getElementById("switch");
+const startButton =
+    document.getElementById("start");
+
+const flipButton =
+    document.getElementById("flip");
 
 
 let stream = null;
 
-let currentCamera = "user";
+let camera = "user";
 
-let emojiX = 0.5;
-let emojiY = 0.42;
+let detector = null;
 
-let emojiWidth = 170;
+let faceDetected = false;
+
+
+/*
+========================================
+ПОЛОЖЕНИЕ ФИЛЬТРА
+========================================
+*/
+
+let filterX = 0.5;
+let filterY = 0.40;
+
+let filterSize = 180;
 
 let dragging = false;
 
-let detector = null;
+
+/*
+========================================
+РАЗМЕР CANVAS
+========================================
+*/
+
+function resize() {
+
+    const dpr =
+        window.devicePixelRatio || 1;
+
+    canvas.width =
+        innerWidth * dpr;
+
+    canvas.height =
+        innerHeight * dpr;
+
+    canvas.style.width =
+        innerWidth + "px";
+
+    canvas.style.height =
+        innerHeight + "px";
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+}
+
+resize();
+
+window.addEventListener(
+    "resize",
+    resize
+);
 
 
 /*
@@ -178,420 +238,458 @@ let detector = null;
 
 async function startCamera() {
 
-  try {
+    if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ) {
 
-    if (stream) {
+        message.textContent =
+            "⚠️ Открой HTML через HTTPS";
 
-      stream
-        .getTracks()
-        .forEach(track => track.stop());
-
+        return;
     }
 
-    stream =
-      await navigator.mediaDevices.getUserMedia({
-
-        video: {
-          facingMode: currentCamera,
-
-          width: {
-            ideal: 1280
-          },
-
-          height: {
-            ideal: 720
-          }
-        },
-
-        audio: false
-
-      });
-
-    video.srcObject = stream;
-
-    await video.play();
-
-    status.textContent =
-      "😃 Камера включена";
-
-    setupDetector();
-
-  } catch (error) {
-
-    console.error(error);
-
-    status.textContent =
-      "Не удалось открыть камеру";
-
-  }
-
-}
-
-
-/*
-========================================
-FACE DETECTOR
-========================================
-*/
-
-async function setupDetector() {
-
-  /*
-    FaceDetector есть не во всех браузерах.
-  */
-
-  if ("FaceDetector" in window) {
 
     try {
 
-      detector =
-        new FaceDetector({
-          fastMode: true,
-          maxDetectedFaces: 1
-        });
+        if (stream) {
 
-      status.textContent =
-        "😃 Поиск лица...";
+            stream
+                .getTracks()
+                .forEach(
+                    track => track.stop()
+                );
+        }
 
-    } catch {
 
-      detector = null;
+        message.textContent =
+            "Запрашиваем камеру...";
+
+
+        stream =
+            await navigator.mediaDevices
+                .getUserMedia({
+
+                    audio: false,
+
+                    video: {
+                        facingMode: camera,
+
+                        width: {
+                            ideal: 1280
+                        },
+
+                        height: {
+                            ideal: 720
+                        }
+                    }
+
+                });
+
+
+        video.srcObject = stream;
+
+        await video.play();
+
+
+        message.textContent =
+            "Камера работает";
+
+
+        /*
+        Пробуем встроенное
+        распознавание лица
+        */
+
+        if ("FaceDetector" in window) {
+
+            try {
+
+                detector =
+                    new FaceDetector({
+                        fastMode: true,
+                        maxDetectedFaces: 1
+                    });
+
+                message.textContent =
+                    "Камера работает • поиск лица...";
+
+            } catch {
+
+                detector = null;
+
+            }
+
+        } else {
+
+            detector = null;
+
+            message.textContent =
+                "Камера работает • фильтр можно двигать пальцем";
+        }
+
+
+        detectLoop();
 
     }
 
-  } else {
+    catch (error) {
 
-    detector = null;
+        console.error(error);
 
-    status.textContent =
-      "😃 Перетащи фильтр пальцем";
+        message.textContent =
+            "❌ Нет доступа к камере";
 
-  }
-
+        alert(
+            "Разреши доступ к камере в настройках браузера.\n\n" +
+            "Если HTML открыт как файл, открой его через HTTPS."
+        );
+    }
 }
 
 
 /*
 ========================================
-CANVAS
+РИСОВАНИЕ ФИЛЬТРА
 ========================================
 */
 
-function resizeCanvas() {
+function drawFilter(x, y, size) {
 
-  canvas.width =
-    window.innerWidth *
-    devicePixelRatio;
+    const w = size;
 
-  canvas.height =
-    window.innerHeight *
-    devicePixelRatio;
-
-  canvas.style.width =
-    window.innerWidth + "px";
-
-  canvas.style.height =
-    window.innerHeight + "px";
-
-  ctx.setTransform(
-    devicePixelRatio,
-    0,
-    0,
-    devicePixelRatio,
-    0,
-    0
-  );
-
-}
-
-window.addEventListener(
-  "resize",
-  resizeCanvas
-);
-
-resizeCanvas();
+    const h = size * 0.72;
 
 
-/*
-========================================
-РИСУЕМ ФИЛЬТР
-========================================
-*/
-
-function drawEmoji(x, y, width) {
-
-  const height =
-    width * 0.65;
-
-  const left =
-    x - width / 2;
-
-  const top =
-    y - height / 2;
+    ctx.save();
 
 
-  /*
-    Фиолетовая рамка
-  */
-
-  ctx.save();
-
-  ctx.translate(
-    left + width / 2,
-    top + height / 2
-  );
-
-
-  /*
-    Небольшой наклон
-    для эффекта из видео
-  */
-
-  ctx.rotate(
-    Math.sin(Date.now() / 700) * 0.025
-  );
-
-
-  ctx.translate(
-    -width / 2,
-    -height / 2
-  );
-
-
-  /*
+    /*
     Свечение
-  */
+    */
 
-  ctx.shadowColor =
-    "rgba(140,0,255,.8)";
+    ctx.shadowColor =
+        "#b800ff";
 
-  ctx.shadowBlur = 20;
-
-
-  /*
-    Фиолетовый прямоугольник
-  */
-
-  ctx.fillStyle =
-    "rgba(122,20,180,.82)";
-
-  ctx.fillRect(
-    0,
-    0,
-    width,
-    height
-  );
+    ctx.shadowBlur =
+        25;
 
 
-  ctx.shadowBlur = 0;
+    /*
+    Фиолетовая область
+    */
 
+    const gradient =
+        ctx.createLinearGradient(
+            x - w / 2,
+            y - h / 2,
+            x + w / 2,
+            y + h / 2
+        );
 
-  /*
-    Рамка
-  */
-
-  ctx.strokeStyle =
-    "#d54cff";
-
-  ctx.lineWidth = 4;
-
-  ctx.strokeRect(
-    2,
-    2,
-    width - 4,
-    height - 4
-  );
-
-
-  /*
-    Смайлик 😃
-  */
-
-  ctx.font =
-    `${height * .72}px Arial`;
-
-  ctx.textAlign =
-    "center";
-
-  ctx.textBaseline =
-    "middle";
-
-  ctx.fillStyle =
-    "#ffd83d";
-
-  ctx.fillText(
-    "😃",
-    width / 2,
-    height / 2 + 2
-  );
-
-
-  ctx.restore();
-
-}
-
-
-/*
-========================================
-ПОИСК ЛИЦА
-========================================
-*/
-
-async function detectFace() {
-
-  if (
-    !detector ||
-    video.readyState < 2
-  ) {
-
-    drawEmoji(
-      window.innerWidth * emojiX,
-      window.innerHeight * emojiY,
-      emojiWidth
+    gradient.addColorStop(
+        0,
+        "#6d18a8"
     );
 
-    requestAnimationFrame(detectFace);
+    gradient.addColorStop(
+        .5,
+        "#a52cff"
+    );
 
-    return;
-
-  }
-
-
-  try {
-
-    const faces =
-      await detector.detect(video);
+    gradient.addColorStop(
+        1,
+        "#5e1495"
+    );
 
 
-    if (faces.length > 0) {
-
-      const box =
-        faces[0].boundingBox;
+    ctx.fillStyle =
+        gradient;
 
 
-      /*
-        Координаты видео.
+    /*
+    Скруглённая форма
+    */
 
-        Переводим их
-        в координаты экрана.
-      */
+    roundRect(
+        ctx,
+        x - w / 2,
+        y - h / 2,
+        w,
+        h,
+        28
+    );
 
-      const videoWidth =
-        video.videoWidth;
-
-      const videoHeight =
-        video.videoHeight;
-
-
-      const screenWidth =
-        window.innerWidth;
-
-      const screenHeight =
-        window.innerHeight;
+    ctx.fill();
 
 
-      const scale =
-        Math.max(
-          screenWidth / videoWidth,
-          screenHeight / videoHeight
-        );
+    /*
+    Контур
+    */
+
+    ctx.shadowBlur = 0;
+
+    ctx.lineWidth = 4;
+
+    ctx.strokeStyle =
+        "#dc71ff";
+
+    ctx.stroke();
 
 
-      const displayedWidth =
-        videoWidth * scale;
+    /*
+    Смайлик
+    */
 
-      const displayedHeight =
-        videoHeight * scale;
+    ctx.font =
+        `${h * .70}px Arial`;
 
+    ctx.textAlign =
+        "center";
 
-      const offsetX =
-        (screenWidth -
-          displayedWidth) / 2;
+    ctx.textBaseline =
+        "middle";
 
-      const offsetY =
-        (screenHeight -
-          displayedHeight) / 2;
+    ctx.fillStyle =
+        "#ffd93d";
 
-
-      /*
-        Центр лица
-      */
-
-      let faceX =
-        box.x +
-        box.width / 2;
-
-      let faceY =
-        box.y +
-        box.height / 2;
+    ctx.fillText(
+        "😃",
+        x,
+        y + 2
+    );
 
 
-      faceX =
-        faceX * scale +
-        offsetX;
-
-      faceY =
-        faceY * scale +
-        offsetY;
+    ctx.restore();
+}
 
 
-      /*
-        Видео зеркальное,
-        поэтому X переворачиваем.
-      */
+/*
+========================================
+СКРУГЛЁННЫЙ ПРЯМОУГОЛЬНИК
+========================================
+*/
 
-      faceX =
-        screenWidth - faceX;
+function roundRect(
+    context,
+    x,
+    y,
+    width,
+    height,
+    radius
+) {
+
+    context.beginPath();
+
+    context.moveTo(
+        x + radius,
+        y
+    );
+
+    context.lineTo(
+        x + width - radius,
+        y
+    );
+
+    context.quadraticCurveTo(
+        x + width,
+        y,
+        x + width,
+        y + radius
+    );
+
+    context.lineTo(
+        x + width,
+        y + height - radius
+    );
+
+    context.quadraticCurveTo(
+        x + width,
+        y + height,
+        x + width - radius,
+        y + height
+    );
+
+    context.lineTo(
+        x + radius,
+        y + height
+    );
+
+    context.quadraticCurveTo(
+        x,
+        y + height,
+        x,
+        y + height - radius
+    );
+
+    context.lineTo(
+        x,
+        y + radius
+    );
+
+    context.quadraticCurveTo(
+        x,
+        y,
+        x + radius,
+        y
+    );
+
+    context.closePath();
+}
 
 
-      emojiX =
-        faceX / screenWidth;
+/*
+========================================
+РАСПОЗНАВАНИЕ ЛИЦА
+========================================
+*/
 
-      emojiY =
-        faceY / screenHeight;
+async function detectLoop() {
+
+    ctx.clearRect(
+        0,
+        0,
+        innerWidth,
+        innerHeight
+    );
 
 
-      emojiWidth =
-        Math.max(
-          120,
-          box.width * scale * 1.35
-        );
+    if (
+        detector &&
+        video.readyState >= 2
+    ) {
+
+        try {
+
+            const faces =
+                await detector.detect(video);
 
 
-      status.textContent =
-        "😃 Лицо найдено";
+            if (faces.length) {
 
+                const face =
+                    faces[0].boundingBox;
+
+
+                /*
+                Масштаб видео
+                относительно экрана
+                */
+
+                const vw =
+                    video.videoWidth;
+
+                const vh =
+                    video.videoHeight;
+
+
+                const scale =
+                    Math.max(
+                        innerWidth / vw,
+                        innerHeight / vh
+                    );
+
+
+                const shownW =
+                    vw * scale;
+
+                const shownH =
+                    vh * scale;
+
+
+                const offsetX =
+                    (innerWidth - shownW) / 2;
+
+                const offsetY =
+                    (innerHeight - shownH) / 2;
+
+
+                let x =
+                    face.x +
+                    face.width / 2;
+
+
+                let y =
+                    face.y +
+                    face.height / 2;
+
+
+                x =
+                    x * scale +
+                    offsetX;
+
+
+                y =
+                    y * scale +
+                    offsetY;
+
+
+                /*
+                Фронтальная камера
+                зеркальная
+                */
+
+                if (camera === "user") {
+
+                    x =
+                        innerWidth - x;
+                }
+
+
+                filterX =
+                    x / innerWidth;
+
+                filterY =
+                    y / innerHeight;
+
+
+                filterSize =
+                    Math.max(
+                        120,
+                        face.width *
+                        scale *
+                        1.45
+                    );
+
+
+                faceDetected = true;
+
+
+                message.textContent =
+                    "😃 Лицо найдено";
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.log(
+                "FaceDetector:",
+                error
+            );
+
+        }
     }
 
 
-  } catch (error) {
+    /*
+    Всегда рисуем фильтр.
+    Поэтому даже браузер без
+    FaceDetector не будет
+    показывать пустой экран.
+    */
 
-    console.log(error);
-
-  }
-
-
-  /*
-    Рисуем
-  */
-
-  ctx.clearRect(
-    0,
-    0,
-    window.innerWidth,
-    window.innerHeight
-  );
+    drawFilter(
+        innerWidth * filterX,
+        innerHeight * filterY,
+        filterSize
+    );
 
 
-  drawEmoji(
-    window.innerWidth * emojiX,
-    window.innerHeight * emojiY,
-    emojiWidth
-  );
-
-
-  requestAnimationFrame(detectFace);
-
+    requestAnimationFrame(
+        detectLoop
+    );
 }
 
 
@@ -601,59 +699,59 @@ async function detectFace() {
 ========================================
 */
 
-function moveEmoji(clientX, clientY) {
-
-  emojiX =
-    clientX /
-    window.innerWidth;
-
-  emojiY =
-    clientY /
-    window.innerHeight;
-
-}
-
-
-/*
-    Если FaceDetector отсутствует,
-    фильтр можно двигать пальцем.
-*/
-
 canvas.addEventListener(
-  "pointerdown",
-  e => {
+    "pointerdown",
+    event => {
 
-    dragging = true;
+        dragging = true;
 
-    moveEmoji(
-      e.clientX,
-      e.clientY
-    );
+        filterX =
+            event.clientX /
+            innerWidth;
 
-  }
+        filterY =
+            event.clientY /
+            innerHeight;
+    }
 );
 
+
 canvas.addEventListener(
-  "pointermove",
-  e => {
+    "pointermove",
+    event => {
 
-    if (!dragging) return;
+        if (!dragging)
+            return;
 
-    moveEmoji(
-      e.clientX,
-      e.clientY
-    );
 
-  }
+        filterX =
+            event.clientX /
+            innerWidth;
+
+        filterY =
+            event.clientY /
+            innerHeight;
+    }
 );
 
+
 canvas.addEventListener(
-  "pointerup",
-  () => {
+    "pointerup",
+    () => {
 
-    dragging = false;
+        dragging = false;
 
-  }
+    }
+);
+
+
+canvas.addEventListener(
+    "pointercancel",
+    () => {
+
+        dragging = false;
+
+    }
 );
 
 
@@ -663,31 +761,23 @@ canvas.addEventListener(
 ========================================
 */
 
-switchButton.addEventListener(
-  "click",
-  async () => {
+flipButton.onclick =
+async function () {
 
-    currentCamera =
-      currentCamera === "user"
-        ? "environment"
-        : "user";
+    camera =
+        camera === "user"
+            ? "environment"
+            : "user";
 
-
-    /*
-      Зеркалим только
-      фронтальную камеру.
-    */
 
     video.style.transform =
-      currentCamera === "user"
-        ? "scaleX(-1)"
-        : "scaleX(1)";
+        camera === "user"
+            ? "scaleX(-1)"
+            : "scaleX(1)";
 
 
     await startCamera();
-
-  }
-);
+};
 
 
 /*
@@ -696,7 +786,19 @@ switchButton.addEventListener(
 ========================================
 */
 
-startCamera();
+startButton.onclick =
+    startCamera;
+
+
+/*
+Не запускаем камеру
+автоматически — браузер
+надёжнее даёт разрешение
+после нажатия пользователем.
+*/
+
+message.textContent =
+    "Нажми «Запустить камеру»";
 
 </script>
 
